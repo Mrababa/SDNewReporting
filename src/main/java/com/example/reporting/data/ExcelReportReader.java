@@ -22,8 +22,6 @@ import org.slf4j.LoggerFactory;
 
 public class ExcelReportReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelReportReader.class);
-    private static final int SAMPLE_ROW_LIMIT = 5;
-
     private final List<String> expectedSheets;
 
     public ExcelReportReader(List<String> expectedSheets) {
@@ -55,7 +53,7 @@ public class ExcelReportReader {
     private SheetSummary summarizeSheet(Sheet sheet) {
         DataFormatter formatter = new DataFormatter();
         List<String> headers = extractHeaders(sheet, formatter);
-        List<List<String>> sampleRows = new ArrayList<>();
+        List<List<String>> rows = new ArrayList<>();
         int rowCount = 0;
 
         int firstRow = sheet.getFirstRowNum() + 1; // skip header
@@ -66,12 +64,10 @@ public class ExcelReportReader {
                 continue;
             }
             rowCount++;
-            if (sampleRows.size() < SAMPLE_ROW_LIMIT) {
-                sampleRows.add(extractRow(row, headers.size(), formatter));
-            }
+            rows.add(extractRow(row, headers.size(), formatter));
         }
 
-        return new SheetSummary(sheet.getSheetName(), rowCount, headers, sampleRows);
+        return new SheetSummary(sheet.getSheetName(), rowCount, headers, rows);
     }
 
     private List<String> extractHeaders(Sheet sheet, DataFormatter formatter) {
