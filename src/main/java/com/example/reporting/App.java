@@ -7,7 +7,6 @@ import com.example.reporting.file.ReportFileLocator;
 import com.example.reporting.model.ReportFile;
 import com.example.reporting.model.ReportSummary;
 import com.example.reporting.report.ReportGenerator;
-import com.example.reporting.util.ChartRenderer;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -48,7 +47,7 @@ public class App {
         ExcelReportReader reader = new ExcelReportReader(EXPECTED_SHEETS);
         ReportSummary summary = reader.readReport(reportFile);
 
-        ReportGenerator generator = new ReportGenerator(new ChartRenderer());
+        ReportGenerator generator = new ReportGenerator();
         String htmlContent = generator.buildHtmlReport(summary);
 
         String baseFileName = String.format("SD_Weekly_Summary_%s", summary.getReportDate());

@@ -6,13 +6,13 @@ public class SheetSummary {
     private final String sheetName;
     private final int rowCount;
     private final List<String> columnHeaders;
-    private final List<List<String>> sampleRows;
+    private final List<List<String>> rows;
 
-    public SheetSummary(String sheetName, int rowCount, List<String> columnHeaders, List<List<String>> sampleRows) {
+    public SheetSummary(String sheetName, int rowCount, List<String> columnHeaders, List<List<String>> rows) {
         this.sheetName = sheetName;
         this.rowCount = rowCount;
         this.columnHeaders = List.copyOf(columnHeaders);
-        this.sampleRows = List.copyOf(sampleRows);
+        this.rows = List.copyOf(rows);
     }
 
     public String getSheetName() {
@@ -27,7 +27,7 @@ public class SheetSummary {
         return columnHeaders;
     }
 
-    public List<List<String>> getSampleRows() {
-        return sampleRows;
+    public List<List<String>> getRows() {
+        return rows;
     }
 }
