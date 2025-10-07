@@ -200,7 +200,7 @@ public class ReportGenerator {
                 .append("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js\"></script>")
                 .append("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js\"></script>")
                 .append("<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js\"></script>")
-                .append("<script>")
+                .append("<script type=\"text/javascript\"><![CDATA[")
                 .append("const reportSections = ").append(toJsonSections()).append(";")
                 .append("const abnormalIdsColumns = ").append(toJsonArray(abnormalColumns)).append(";")
                 .append("const abnormalIdsData = ").append(abnormalJson).append(";")
@@ -215,7 +215,7 @@ public class ReportGenerator {
                 .append("const sdErrorDetailColumns = ").append(toJsonArray(sdErrorDetailColumns)).append(";")
                 .append("const sdErrorDetailData = ").append(sdErrorDetailJson).append(";")
                 .append(getScript())
-                .append("</script>");
+                .append("]]></script>");
 
         html.append("</body></html>");
         return html.toString();
