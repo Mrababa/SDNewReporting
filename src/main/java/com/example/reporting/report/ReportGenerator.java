@@ -634,7 +634,7 @@ public class ReportGenerator {
         script.append("      if (activeButton) { activeButton.focus(); }\n");
         script.append("    }\n");
         script.append("    setTimeout(() => {\n");
-        script.append("      const panel = document.querySelector(\"[data-tab-panel='" + id + "']\");\n");
+        script.append("      const panel = document.querySelector(`[data-tab-panel='${id}']`);\n");
         script.append("      if (panel) {\n");
         script.append("        panel.querySelectorAll('table').forEach(table => {\n");
         script.append("          const instance = dataTables[table.id];\n");
