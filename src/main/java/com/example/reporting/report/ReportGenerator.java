@@ -453,7 +453,7 @@ public class ReportGenerator {
         String buttonId = "tab-" + id;
         return String.format(
                 Locale.ROOT,
-                "<button type=\"button\" class=\"tab-link\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"false\" tabindex=\"-1\">%s</button>",
+                "<span class=\"tab-link\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"false\" tabindex=\"-1\">%s</span>",
                 escapeHtml(buttonId),
                 escapeHtml(id),
                 escapeHtml(id),
