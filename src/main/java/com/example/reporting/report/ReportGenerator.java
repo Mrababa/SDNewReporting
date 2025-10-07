@@ -50,6 +50,14 @@ public class ReportGenerator {
             "Error_Description",
             "Error_Count"
     );
+    private static final String[][] REPORT_SECTIONS = {
+            {"abnormal-ids", "Abnormal Member IDs"},
+            {"icp-api-stats", "ICP Service Success vs Failure"},
+            {"icp-error-details", "ICP Failure Reasons"},
+            {"mem-upload-counts", "Policy Upload Channels"},
+            {"sd-error-ratio", "Service Failure Ratios"},
+            {"sd-error-details-ic", "Error Details by Insurance Company"}
+    };
 
     public ReportGenerator() {
     }
@@ -193,6 +201,7 @@ public class ReportGenerator {
                 .append("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js\"></script>")
                 .append("<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js\"></script>")
                 .append("<script>")
+                .append("const reportSections = ").append(toJsonSections()).append(";")
                 .append("const abnormalIdsColumns = ").append(toJsonArray(abnormalColumns)).append(";")
                 .append("const abnormalIdsData = ").append(abnormalJson).append(";")
                 .append("const icpApiColumns = ").append(toJsonArray(icpApiColumns)).append(";")
@@ -314,6 +323,21 @@ public class ReportGenerator {
         return sb.toString();
     }
 
+    private String toJsonSections() {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < REPORT_SECTIONS.length; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append('{')
+                    .append("\"id\":\"").append(escapeJson(REPORT_SECTIONS[i][0])).append("\",")
+                    .append("\"label\":\"").append(escapeJson(REPORT_SECTIONS[i][1])).append("\"")
+                    .append('}');
+        }
+        sb.append(']');
+        return sb.toString();
+    }
+
     private String renderDataSection(String sectionId,
                                      String title,
                                      String description,
@@ -321,8 +345,11 @@ public class ReportGenerator {
                                      String chartId,
                                      String tableId,
                                      String emptyMessageId) {
+        String tabButtonId = "tab-" + sectionId;
         return new StringBuilder()
-                .append('<').append("section class=\"card data-section\" id=\"").append(sectionId).append("\">")
+                .append('<').append("section class=\"card data-section tab-panel\" id=\"").append(sectionId)
+                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId).append("\" data-tab-panel=\"")
+                .append(sectionId).append("\" tabindex=\"-1\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -342,8 +369,11 @@ public class ReportGenerator {
                                           String description,
                                           String tableId,
                                           String emptyMessageId) {
+        String tabButtonId = "tab-" + sectionId;
         return new StringBuilder()
-                .append('<').append("section class=\"card data-section\" id=\"").append(sectionId).append("\">")
+                .append('<').append("section class=\"card data-section tab-panel\" id=\"").append(sectionId)
+                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId).append("\" data-tab-panel=\"")
+                .append(sectionId).append("\" tabindex=\"-1\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -408,28 +438,29 @@ public class ReportGenerator {
     }
 
     private String renderNavigation() {
-        String[][] sections = {
-                {"abnormal-ids", "Abnormal Member IDs"},
-                {"icp-api-stats", "ICP Service Success vs Failure"},
-                {"icp-error-details", "ICP Failure Reasons"},
-                {"mem-upload-counts", "Policy Upload Channels"},
-                {"sd-error-ratio", "Service Failure Ratios"},
-                {"sd-error-details-ic", "Error Details by Insurance Company"}
-        };
-
         StringBuilder builder = new StringBuilder()
                 .append("<section class=\"card quick-links\">")
                 .append("<h2>Report Sections</h2>")
-                .append("<ul>");
-        for (String[] section : sections) {
+                .append("<div class=\"tab-bar\" role=\"tablist\">");
+        for (String[] section : REPORT_SECTIONS) {
             builder.append(renderNavItem(section[0], section[1]));
         }
-        builder.append("</ul></section>");
+        builder.append("</div>")
+                .append("<p class=\"tab-hint\">Switch between tabs to focus on one worksheet at a time.</p>")
+                .append("</section>");
         return builder.toString();
     }
 
     private String renderNavItem(String id, String label) {
-        return String.format("<li><a href=\"#%s\" data-scroll=\"true\">%s</a></li>", escapeHtml(id), escapeHtml(label));
+        String buttonId = "tab-" + id;
+        return String.format(
+                Locale.ROOT,
+                "<button type=\"button\" class=\"tab-link\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"false\" tabindex=\"-1\">%s</button>",
+                escapeHtml(buttonId),
+                escapeHtml(id),
+                escapeHtml(id),
+                escapeHtml(label)
+        );
     }
 
     private String renderOverviewCard() {
@@ -530,10 +561,13 @@ public class ReportGenerator {
                 + ".metric-value { font-size: 1.6rem; font-weight: 600; color: #0f172a; }"
                 + ".metric-label { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }"
                 + ".metric-caption { font-size: 0.9rem; color: #475569; }"
-                + ".quick-links ul { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: 0.75rem; }"
-                + ".quick-links li a { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.8rem; border-radius: 10px; background: #f1f5f9; color: #0f172a; font-weight: 500; border: 1px solid transparent; transition: all 0.2s ease; }"
-                + ".quick-links li a::before { content: '➜'; font-size: 0.85rem; color: #0ea5e9; }"
-                + ".quick-links li a:hover { border-color: #0ea5e9; background: #e0f2fe; color: #0369a1; text-decoration: none; }"
+                + ".quick-links { display: flex; flex-direction: column; gap: 1rem; }"
+                + ".tab-bar { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }"
+                + ".tab-link { padding: 0.65rem 1rem; border-radius: 999px; border: 1px solid #cbd5f5; background: #f8fafc; color: #0f172a; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }"
+                + ".tab-link:hover { background: #e0f2fe; border-color: #0ea5e9; color: #0369a1; }"
+                + ".tab-link.active { background: #0ea5e9; color: #f8fafc; border-color: #0ea5e9; box-shadow: 0 8px 18px -12px rgba(14, 165, 233, 0.8); }"
+                + ".tab-link:focus-visible { outline: 3px solid rgba(59, 130, 246, 0.4); outline-offset: 2px; }"
+                + ".tab-hint { margin: 0; font-size: 0.9rem; color: #475569; }"
                 + ".narrative p { margin-top: 1rem; line-height: 1.6; color: #475569; }"
                 + ".narrative-list { margin: 1.2rem 0 0; padding-left: 1.2rem; color: #475569; }"
                 + ".narrative-list li { margin-bottom: 0.55rem; }"
@@ -541,7 +575,8 @@ public class ReportGenerator {
                 + ".missing h2 { color: #b91c1c; }"
                 + ".missing p { margin-top: 0.75rem; color: #7f1d1d; }"
                 + ".missing ul { margin: 1rem 0 0; padding-left: 1.3rem; color: #991b1b; }"
-                + ".data-section { display: grid; gap: 1.25rem; }"
+                + ".tab-panel { display: none; }"
+                + ".tab-panel.active { display: grid; gap: 1.25rem; }"
                 + ".section-header { display: flex; flex-direction: column; gap: 0.45rem; }"
                 + ".description { margin: 0; color: #475569; line-height: 1.5; }"
                 + ".chart-card { position: relative; min-height: 320px; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5f5; }"
@@ -560,183 +595,249 @@ public class ReportGenerator {
     }
 
     private String getScript() {
-        return "document.addEventListener('DOMContentLoaded', function () {"
-                + "enableSmoothScroll();"
-                + "initAbnormalIds();"
-                + "initIcpApiStats();"
-                + "initIcpErrorDetails();"
-                + "initMemUploadCounts();"
-                + "initSdErrorRatios();"
-                + "initSdErrorDetail();"
-                + "});"
-                + "function enableSmoothScroll() {"
-                + "document.querySelectorAll('a[data-scroll]').forEach(link => {"
-                + "link.addEventListener('click', function (event) {"
-                + "const target = document.querySelector(this.getAttribute('href'));"
-                + "if (target) {"
-                + "event.preventDefault();"
-                + "target.scrollIntoView({ behavior: 'smooth' });"
-                + "}"
-                + "});"
-                + "});"
-                + "}"
-                + "function initDataTable(tableId, columns, data, options) {"
-                + "const tableElement = document.getElementById(tableId);"
-                + "if (!tableElement) { return null; }"
-                + "const config = Object.assign({"
-                + "data: data,"
-                + "columns: columns.map(name => ({ title: name, data: name })),"
-                + "paging: true,"
-                + "searching: true,"
-                + "ordering: true,"
-                + "pageLength: 10,"
-                + "dom: 'Bfrtip',"
-                + "buttons: ["
-                + "{ extend: 'excelHtml5', title: options.exportTitle || tableId },"
-                + "{ extend: 'pdfHtml5', title: options.exportTitle || tableId, orientation: 'landscape', pageSize: 'A4' }"
-                + " ]"
-                + "}, options || {});"
-                + "return $(tableElement).DataTable(config);"
-                + "}"
-                + "function safeNumber(value) {"
-                + "if (value === undefined || value === null) { return 0; }"
-                + "const normalised = String(value).replace(/,/g, '').trim();"
-                + "const num = Number(normalised);"
-                + "return Number.isFinite(num) ? num : 0;"
-                + "}"
-                + "function initAbnormalIds() {"
-                + "if (!abnormalIdsData.length) {"
-                + "document.getElementById('abnormalIdsEmpty').classList.remove('hidden');"
-                + "document.getElementById('abnormalIdsChartContainer').classList.add('hidden');"
-                + "return;"
-                + "}"
-                + "initDataTable('abnormalIdsTable', abnormalIdsColumns, abnormalIdsData, {"
-                + "exportTitle: 'Abnormal Member IDs',"
-                + "pageLength: 15"
-                + "});"
-                + "const labels = abnormalIdsData.map(row => row['InsuranceCompanyName']);"
-                + "const data = abnormalIdsData.map(row => safeNumber(row['PolicyCount']));"
-                + "new Chart(document.getElementById('abnormalIdsChart'), {"
-                + "type: 'bar',"
-                + "data: { labels: labels, datasets: [{"
-                + "label: 'Policies with invalid IDs',"
-                + "data: data,"
-                + "backgroundColor: '#38bdf8'"
-                + "}]},"
-                + "options: { responsive: true, plugins: { legend: { display: false }, tooltip: { mode: 'index' } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Policies' } } } }"
-                + "});"
-                + "}"
-                + "function initIcpApiStats() {"
-                + "if (!icpApiData.length) {"
-                + "document.getElementById('icpApiEmpty').classList.remove('hidden');"
-                + "document.getElementById('icpApiChartContainer').classList.add('hidden');"
-                + "return;"
-                + "}"
-                + "initDataTable('icpApiTable', icpApiColumns, icpApiData, {"
-                + "exportTitle: 'ICP Service Success vs Failure',"
-                + "paging: false"
-                + "});"
-                + "const labels = icpApiData.map(row => row['ServiceName']);"
-                + "const success = icpApiData.map(row => safeNumber(row['SuccessCount']));"
-                + "const failure = icpApiData.map(row => safeNumber(row['FailureCount']));"
-                + "new Chart(document.getElementById('icpApiChart'), {"
-                + "type: 'bar',"
-                + "data: { labels: labels, datasets: ["
-                + "{ label: 'Success', data: success, backgroundColor: '#22c55e' },"
-                + "{ label: 'Failure', data: failure, backgroundColor: '#ef4444' }"
-                + "]},"
-                + "options: { responsive: true, plugins: { tooltip: { mode: 'index', intersect: false } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }"
-                + "});"
-                + "}"
-                + "function initIcpErrorDetails() {"
-                + "if (!icpErrorData.length) {"
-                + "document.getElementById('icpErrorsEmpty').classList.remove('hidden');"
-                + "return;"
-                + "}"
-                + "initDataTable('icpErrorsTable', icpErrorColumns, icpErrorData, {"
-                + "exportTitle: 'ICP Failure Reasons',"
-                + "pageLength: 15"
-                + "});"
-                + "}"
-                + "function initMemUploadCounts() {"
-                + "if (!memUploadData.length) {"
-                + "document.getElementById('memUploadEmpty').classList.remove('hidden');"
-                + "document.getElementById('memUploadChartContainer').classList.add('hidden');"
-                + "return;"
-                + "}"
-                + "initDataTable('memUploadTable', memUploadColumns, memUploadData, {"
-                + "exportTitle: 'Policy Upload Channels',"
-                + "createdRow: function (row, data) {"
-                + "if (safeNumber(data['Manual_Upload']) > safeNumber(data['API_Upload'])) {"
-                + "row.classList.add('highlight-manual');"
-                + "}"
-                + "}"
-                + "});"
-                + "const labels = memUploadData.map(row => row['InsuranceCompanyName']);"
-                + "const apiCounts = memUploadData.map(row => safeNumber(row['API_Upload']));"
-                + "const manualCounts = memUploadData.map(row => safeNumber(row['Manual_Upload']));"
-                + "new Chart(document.getElementById('memUploadChart'), {"
-                + "type: 'bar',"
-                + "data: { labels: labels, datasets: ["
-                + "{ label: 'API Upload', data: apiCounts, backgroundColor: '#3b82f6' },"
-                + "{ label: 'Manual Upload', data: manualCounts, backgroundColor: '#f97316' }"
-                + "]},"
-                + "options: { responsive: true, plugins: { tooltip: { mode: 'index', intersect: false } }, scales: { x: { stacked: false, title: { display: true, text: 'Insurance Company' } }, y: { beginAtZero: true, title: { display: true, text: 'Policies' } } } }"
-                + "});"
-                + "}"
-                + "function initSdErrorRatios() {"
-                + "if (!sdErrorData.length) {"
-                + "document.getElementById('sdErrorEmpty').classList.remove('hidden');"
-                + "document.getElementById('sdErrorChartContainer').classList.add('hidden');"
-                + "return;"
-                + "}"
-                + "initDataTable('sdErrorTable', sdErrorColumns, sdErrorData, {"
-                + "exportTitle: 'Service Failure Ratios',"
-                + "pageLength: 15"
-                + "});"
-                + "const labels = sdErrorData.map(row => row['InsuranceCompanyName']);"
-                + "const ratios = sdErrorData.map(row => safeNumber(row['API_Failure_Ratio']));"
-                + "new Chart(document.getElementById('sdErrorChart'), {"
-                + "type: 'line',"
-                + "data: { labels: labels, datasets: [{"
-                + "label: 'Failure Ratio',"
-                + "data: ratios,"
-                + "borderColor: '#f97316',"
-                + "backgroundColor: 'rgba(249, 115, 22, 0.2)',"
-                + "fill: true,"
-                + "tension: 0.3"
-                + "}]},"
-                + "options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }"
-                + "});"
-                + "}"
-                + "function initSdErrorDetail() {"
-                + "if (!sdErrorDetailData.length) {"
-                + "document.getElementById('sdErrorDetailEmpty').classList.remove('hidden');"
-                + "document.getElementById('sdErrorDetailChartContainer').classList.add('hidden');"
-                + "return;"
-                + "}"
-                + "initDataTable('sdErrorDetailTable', sdErrorDetailColumns, sdErrorDetailData, {"
-                + "exportTitle: 'Error Details by Insurance Company',"
-                + "pageLength: 20"
-                + "});"
-                + "const aggregation = {};"
-                + "sdErrorDetailData.forEach(row => {"
-                + "const key = row['Error_Description'] || row['ServiceName'] || 'Unknown';"
-                + "aggregation[key] = (aggregation[key] || 0) + safeNumber(row['Error_Count']);"
-                + "});"
-                + "const topEntries = Object.entries(aggregation).sort((a, b) => b[1] - a[1]).slice(0, 10);"
-                + "const labels = topEntries.map(entry => entry[0]);"
-                + "const values = topEntries.map(entry => entry[1]);"
-                + "new Chart(document.getElementById('sdErrorDetailChart'), {"
-                + "type: 'bar',"
-                + "data: { labels: labels, datasets: [{"
-                + "label: 'Error Count',"
-                + "data: values,"
-                + "backgroundColor: '#a855f7'"
-                + "}]},"
-                + "options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }"
-                + "});"
-                + "}"
-                + "";
+        StringBuilder script = new StringBuilder();
+        script.append("const dataTables = {};\n");
+        script.append("document.addEventListener('DOMContentLoaded', function () {\n");
+        script.append("  initTabs(reportSections);\n");
+        script.append("  initAbnormalIds();\n");
+        script.append("  initIcpApiStats();\n");
+        script.append("  initIcpErrorDetails();\n");
+        script.append("  initMemUploadCounts();\n");
+        script.append("  initSdErrorRatios();\n");
+        script.append("  initSdErrorDetail();\n");
+        script.append("});\n");
+        script.append("function initTabs(sections) {\n");
+        script.append("  const tabButtons = Array.from(document.querySelectorAll('.tab-link'));\n");
+        script.append("  const panels = Array.from(document.querySelectorAll('.tab-panel'));\n");
+        script.append("  const sectionIds = sections.map(section => section.id);\n");
+        script.append("  const validIds = new Set(sectionIds);\n");
+        script.append("  function activateTab(id, options) {\n");
+        script.append("    if (!id || !validIds.has(id)) { return; }\n");
+        script.append("    const opts = Object.assign({ updateHash: true, focus: false }, options || {});\n");
+        script.append("    tabButtons.forEach(button => {\n");
+        script.append("      const isActive = button.dataset.tab === id;\n");
+        script.append("      button.classList.toggle('active', isActive);\n");
+        script.append("      button.setAttribute('aria-selected', String(isActive));\n");
+        script.append("      button.setAttribute('tabindex', isActive ? '0' : '-1');\n");
+        script.append("    });\n");
+        script.append("    panels.forEach(panel => {\n");
+        script.append("      const isActive = panel.dataset.tabPanel === id;\n");
+        script.append("      panel.classList.toggle('active', isActive);\n");
+        script.append("      panel.setAttribute('aria-hidden', String(!isActive));\n");
+        script.append("      panel.setAttribute('tabindex', isActive ? '0' : '-1');\n");
+        script.append("    });\n");
+        script.append("    if (opts.updateHash && typeof history.replaceState === 'function') {\n");
+        script.append("      history.replaceState(null, '', '#' + id);\n");
+        script.append("    }\n");
+        script.append("    if (opts.focus) {\n");
+        script.append("      const activeButton = tabButtons.find(button => button.dataset.tab === id);\n");
+        script.append("      if (activeButton) { activeButton.focus(); }\n");
+        script.append("    }\n");
+        script.append("    setTimeout(() => {\n");
+        script.append("      const panel = document.querySelector('[data-tab-panel=\\"' + id + '\\"]');\n");
+        script.append("      if (panel) {\n");
+        script.append("        panel.querySelectorAll('table').forEach(table => {\n");
+        script.append("          const instance = dataTables[table.id];\n");
+        script.append("          if (instance && typeof instance.columns === 'function') { instance.columns.adjust(); }\n");
+        script.append("        });\n");
+        script.append("        panel.querySelectorAll('canvas').forEach(canvas => {\n");
+        script.append("          if (canvas.__chart && typeof canvas.__chart.resize === 'function') { canvas.__chart.resize(); }\n");
+        script.append("        });\n");
+        script.append("      }\n");
+        script.append("    }, 150);\n");
+        script.append("  }\n");
+        script.append("  tabButtons.forEach(button => {\n");
+        script.append("    button.addEventListener('click', () => activateTab(button.dataset.tab));\n");
+        script.append("    button.addEventListener('keydown', event => {\n");
+        script.append("      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {\n");
+        script.append("        event.preventDefault();\n");
+        script.append("        const currentIndex = tabButtons.indexOf(button);\n");
+        script.append("        const direction = event.key === 'ArrowRight' ? 1 : -1;\n");
+        script.append("        const nextIndex = (currentIndex + direction + tabButtons.length) % tabButtons.length;\n");
+        script.append("        const nextButton = tabButtons[nextIndex];\n");
+        script.append("        if (nextButton) {\n");
+        script.append("          activateTab(nextButton.dataset.tab, { focus: true });\n");
+        script.append("        }\n");
+        script.append("      }\n");
+        script.append("    });\n");
+        script.append("  });\n");
+        script.append("  const hash = window.location.hash.replace('#', '');\n");
+        script.append("  const initialId = validIds.has(hash) ? hash : sectionIds[0];\n");
+        script.append("  if (initialId) { activateTab(initialId, { updateHash: false }); }\n");
+        script.append("  window.addEventListener('hashchange', () => {\n");
+        script.append("    const targetId = window.location.hash.replace('#', '');\n");
+        script.append("    activateTab(targetId, { updateHash: false });\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("function initDataTable(tableId, columns, data, options) {\n");
+        script.append("  const tableElement = document.getElementById(tableId);\n");
+        script.append("  if (!tableElement) { return null; }\n");
+        script.append("  const tableOptions = options || {};\n");
+        script.append("  const exportTitle = tableOptions.exportTitle || tableId;\n");
+        script.append("  const config = Object.assign({\n");
+        script.append("    data: data,\n");
+        script.append("    columns: columns.map(name => ({ title: name, data: name })),\n");
+        script.append("    paging: true,\n");
+        script.append("    searching: true,\n");
+        script.append("    ordering: true,\n");
+        script.append("    pageLength: 10,\n");
+        script.append("    dom: 'Bfrtip',\n");
+        script.append("    buttons: [\n");
+        script.append("      { extend: 'excelHtml5', title: exportTitle },\n");
+        script.append("      { extend: 'pdfHtml5', title: exportTitle, orientation: 'landscape', pageSize: 'A4' }\n");
+        script.append("    ]\n");
+        script.append("  }, tableOptions);\n");
+        script.append("  const table = $(tableElement).DataTable(config);\n");
+        script.append("  dataTables[tableId] = table;\n");
+        script.append("  return table;\n");
+        script.append("}\n");
+        script.append("function safeNumber(value) {\n");
+        script.append("  if (value === undefined || value === null) { return 0; }\n");
+        script.append("  const normalised = String(value).replace(/,/g, '').trim();\n");
+        script.append("  const num = Number(normalised);\n");
+        script.append("  return Number.isFinite(num) ? num : 0;\n");
+        script.append("}\n");
+        script.append("function createChart(canvasId, config) {\n");
+        script.append("  const canvas = document.getElementById(canvasId);\n");
+        script.append("  if (!canvas) { return null; }\n");
+        script.append("  const chart = new Chart(canvas, config);\n");
+        script.append("  canvas.__chart = chart;\n");
+        script.append("  return chart;\n");
+        script.append("}\n");
+        script.append("function initAbnormalIds() {\n");
+        script.append("  if (!abnormalIdsData.length) {\n");
+        script.append("    document.getElementById('abnormalIdsEmpty').classList.remove('hidden');\n");
+        script.append("    document.getElementById('abnormalIdsChartContainer').classList.add('hidden');\n");
+        script.append("    return;\n");
+        script.append("  }\n");
+        script.append("  initDataTable('abnormalIdsTable', abnormalIdsColumns, abnormalIdsData, {\n");
+        script.append("    exportTitle: 'Abnormal Member IDs',\n");
+        script.append("    pageLength: 15\n");
+        script.append("  });\n");
+        script.append("  const labels = abnormalIdsData.map(row => row['InsuranceCompanyName']);\n");
+        script.append("  const data = abnormalIdsData.map(row => safeNumber(row['PolicyCount']));\n");
+        script.append("  createChart('abnormalIdsChart', {\n");
+        script.append("    type: 'bar',\n");
+        script.append("    data: { labels: labels, datasets: [{\n");
+        script.append("      label: 'Policies with invalid IDs',\n");
+        script.append("      data: data,\n");
+        script.append("      backgroundColor: '#38bdf8'\n");
+        script.append("    }]},\n");
+        script.append("    options: { responsive: true, plugins: { legend: { display: false }, tooltip: { mode: 'index' } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Policies' } } } }\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("function initIcpApiStats() {\n");
+        script.append("  if (!icpApiData.length) {\n");
+        script.append("    document.getElementById('icpApiEmpty').classList.remove('hidden');\n");
+        script.append("    document.getElementById('icpApiChartContainer').classList.add('hidden');\n");
+        script.append("    return;\n");
+        script.append("  }\n");
+        script.append("  initDataTable('icpApiTable', icpApiColumns, icpApiData, {\n");
+        script.append("    exportTitle: 'ICP Service Success vs Failure',\n");
+        script.append("    paging: false\n");
+        script.append("  });\n");
+        script.append("  const labels = icpApiData.map(row => row['ServiceName']);\n");
+        script.append("  const success = icpApiData.map(row => safeNumber(row['SuccessCount']));\n");
+        script.append("  const failure = icpApiData.map(row => safeNumber(row['FailureCount']));\n");
+        script.append("  createChart('icpApiChart', {\n");
+        script.append("    type: 'bar',\n");
+        script.append("    data: { labels: labels, datasets: [\n");
+        script.append("      { label: 'Success', data: success, backgroundColor: '#22c55e' },\n");
+        script.append("      { label: 'Failure', data: failure, backgroundColor: '#ef4444' }\n");
+        script.append("    ]},\n");
+        script.append("    options: { responsive: true, plugins: { tooltip: { mode: 'index', intersect: false } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("function initIcpErrorDetails() {\n");
+        script.append("  if (!icpErrorData.length) {\n");
+        script.append("    document.getElementById('icpErrorsEmpty').classList.remove('hidden');\n");
+        script.append("    return;\n");
+        script.append("  }\n");
+        script.append("  initDataTable('icpErrorsTable', icpErrorColumns, icpErrorData, {\n");
+        script.append("    exportTitle: 'ICP Failure Reasons',\n");
+        script.append("    pageLength: 15\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("function initMemUploadCounts() {\n");
+        script.append("  if (!memUploadData.length) {\n");
+        script.append("    document.getElementById('memUploadEmpty').classList.remove('hidden');\n");
+        script.append("    document.getElementById('memUploadChartContainer').classList.add('hidden');\n");
+        script.append("    return;\n");
+        script.append("  }\n");
+        script.append("  initDataTable('memUploadTable', memUploadColumns, memUploadData, {\n");
+        script.append("    exportTitle: 'Policy Upload Channels',\n");
+        script.append("    createdRow: function (row, data) {\n");
+        script.append("      if (safeNumber(data['Manual_Upload']) > safeNumber(data['API_Upload'])) {\n");
+        script.append("        row.classList.add('highlight-manual');\n");
+        script.append("      }\n");
+        script.append("    }\n");
+        script.append("  });\n");
+        script.append("  const labels = memUploadData.map(row => row['InsuranceCompanyName']);\n");
+        script.append("  const apiCounts = memUploadData.map(row => safeNumber(row['API_Upload']));\n");
+        script.append("  const manualCounts = memUploadData.map(row => safeNumber(row['Manual_Upload']));\n");
+        script.append("  createChart('memUploadChart', {\n");
+        script.append("    type: 'bar',\n");
+        script.append("    data: { labels: labels, datasets: [\n");
+        script.append("      { label: 'API Upload', data: apiCounts, backgroundColor: '#3b82f6' },\n");
+        script.append("      { label: 'Manual Upload', data: manualCounts, backgroundColor: '#f97316' }\n");
+        script.append("    ]},\n");
+        script.append("    options: { responsive: true, plugins: { tooltip: { mode: 'index', intersect: false } }, scales: { x: { stacked: false, title: { display: true, text: 'Insurance Company' } }, y: { beginAtZero: true, title: { display: true, text: 'Policies' } } } }\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("function initSdErrorRatios() {\n");
+        script.append("  if (!sdErrorData.length) {\n");
+        script.append("    document.getElementById('sdErrorEmpty').classList.remove('hidden');\n");
+        script.append("    document.getElementById('sdErrorChartContainer').classList.add('hidden');\n");
+        script.append("    return;\n");
+        script.append("  }\n");
+        script.append("  initDataTable('sdErrorTable', sdErrorColumns, sdErrorData, {\n");
+        script.append("    exportTitle: 'Service Failure Ratios',\n");
+        script.append("    pageLength: 15\n");
+        script.append("  });\n");
+        script.append("  const labels = sdErrorData.map(row => row['InsuranceCompanyName']);\n");
+        script.append("  const ratios = sdErrorData.map(row => safeNumber(row['API_Failure_Ratio']));\n");
+        script.append("  createChart('sdErrorChart', {\n");
+        script.append("    type: 'line',\n");
+        script.append("    data: { labels: labels, datasets: [{\n");
+        script.append("      label: 'Failure Ratio',\n");
+        script.append("      data: ratios,\n");
+        script.append("      borderColor: '#f97316',\n");
+        script.append("      backgroundColor: 'rgba(249, 115, 22, 0.2)',\n");
+        script.append("      fill: true,\n");
+        script.append("      tension: 0.3\n");
+        script.append("    }]},\n");
+        script.append("    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("function initSdErrorDetail() {\n");
+        script.append("  if (!sdErrorDetailData.length) {\n");
+        script.append("    document.getElementById('sdErrorDetailEmpty').classList.remove('hidden');\n");
+        script.append("    document.getElementById('sdErrorDetailChartContainer').classList.add('hidden');\n");
+        script.append("    return;\n");
+        script.append("  }\n");
+        script.append("  initDataTable('sdErrorDetailTable', sdErrorDetailColumns, sdErrorDetailData, {\n");
+        script.append("    exportTitle: 'Error Details by Insurance Company',\n");
+        script.append("    pageLength: 20\n");
+        script.append("  });\n");
+        script.append("  const aggregation = {};\n");
+        script.append("  sdErrorDetailData.forEach(row => {\n");
+        script.append("    const key = row['Error_Description'] || row['ServiceName'] || 'Unknown';\n");
+        script.append("    aggregation[key] = (aggregation[key] || 0) + safeNumber(row['Error_Count']);\n");
+        script.append("  });\n");
+        script.append("  const topEntries = Object.entries(aggregation).sort((a, b) => b[1] - a[1]).slice(0, 10);\n");
+        script.append("  const labels = topEntries.map(entry => entry[0]);\n");
+        script.append("  const values = topEntries.map(entry => entry[1]);\n");
+        script.append("  createChart('sdErrorDetailChart', {\n");
+        script.append("    type: 'bar',\n");
+        script.append("    data: { labels: labels, datasets: [{\n");
+        script.append("      label: 'Error Count',\n");
+        script.append("      data: values,\n");
+        script.append("      backgroundColor: '#a855f7'\n");
+        script.append("    }]},\n");
+        script.append("    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }\n");
+        script.append("  });\n");
+        script.append("}\n");
+        script.append("\n");
+        return script.toString();
     }
 }
