@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -88,39 +89,37 @@ public class ReportGenerator {
                 .append(getStyles())
                 .append("</style>")
                 .append("</head>")
-                .append("<body>");
+                .append("<body>")
+                .append("<div class=\"page-shell\">");
 
-        html.append("<header>")
-                .append("<div class=\"title-block\">")
+        html.append("<header class=\"page-header\">")
+                .append("<div class=\"branding\">")
+                .append("<span class=\"page-badge\">Weekly Insight</span>")
                 .append("<h1>SD Interactive Reporting Dashboard</h1>")
-                .append(String.format("<p class=\"meta\"><strong>Report Date:</strong> %s</p>",
+                .append("<p class=\"subtitle\">Operational quality metrics for the Service Desk platform.</p>")
+                .append("</div>")
+                .append("<div class=\"meta-grid\">")
+                .append(String.format("<div class=\"meta-item\"><span class=\"meta-label\">Report Date</span><span class=\"meta-value\">%s</span></div>",
                         DATE_FORMATTER.format(summary.getReportDate())))
-                .append(String.format("<p class=\"meta\"><strong>Generated At:</strong> %s</p>",
+                .append(String.format("<div class=\"meta-item\"><span class=\"meta-label\">Generated At</span><span class=\"meta-value\">%s</span></div>",
                         escapeHtml(summary.getGeneratedAt().toString())))
-                .append(String.format("<p class=\"meta\"><strong>Total Rows Processed:</strong> %,d</p>",
-                        summary.getTotalRowCount()))
+                .append(String.format("<div class=\"meta-item\"><span class=\"meta-label\">Total Rows Processed</span><span class=\"meta-value\">%s</span></div>",
+                        formatInteger(summary.getTotalRowCount())))
                 .append("</div>")
-                .append("<div class=\"export-reminder\">")
-                .append("<p>Use the export buttons on each table to download Excel or PDF extracts.</p>")
-                .append("</div>")
+                .append("<div class=\"callout\"><strong>Tip:</strong> Use the export buttons on each table to download Excel or PDF extracts for your working papers.</div>")
                 .append("</header>");
 
-        if (!summary.getMissingSheets().isEmpty()) {
-            html.append("<section class=\"missing\">")
-                    .append("<h2>Missing Worksheets</h2>")
-                    .append("<ul>");
-            summary.getMissingSheets().forEach(sheet ->
-                    html.append(String.format("<li>%s</li>", escapeHtml(sheet))));
-            html.append("</ul></section>");
-        }
-
-        html.append("<section class=\"overview\">")
-                .append("<article class=\"card\">")
-                .append("<h2>Report Highlights</h2>")
-                .append("<p>Interactive charts and smart tables below help you investigate policy uploads, API performance, and error trends. "
-                        + "Hover over chart elements for tooltips, filter tables using the search boxes, and export data for offline analysis.</p>")
-                .append("</article>")
+        html.append("<main class=\"content\">")
+                .append("<section class=\"summary-grid\">")
+                .append(renderKeyMetrics(summary))
+                .append(renderNavigation())
+                .append(renderOverviewCard())
                 .append("</section>");
+
+        String missingSection = renderMissingSheets(summary);
+        if (!missingSection.isEmpty()) {
+            html.append(missingSection);
+        }
 
         html.append(renderDataSection(
                 "abnormal-ids",
@@ -180,7 +179,10 @@ public class ReportGenerator {
                 "sdErrorDetailEmpty"
         ));
 
-        html.append("<footer><p class=\"meta\">Report generated automatically from the latest workbook.</p></footer>");
+        html.append("</main>");
+
+        html.append("<footer><p class=\"meta\">Report generated automatically from the latest workbook.</p></footer>")
+                .append("</div>");
 
         html.append("<script src=\"https://code.jquery.com/jquery-3.7.1.min.js\"></script>")
                 .append("<script src=\"https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js\"></script>")
@@ -320,7 +322,7 @@ public class ReportGenerator {
                                      String tableId,
                                      String emptyMessageId) {
         return new StringBuilder()
-                .append('<').append("section class=\"card\" id=\"").append(sectionId).append("\">")
+                .append('<').append("section class=\"card data-section\" id=\"").append(sectionId).append("\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -341,7 +343,7 @@ public class ReportGenerator {
                                           String tableId,
                                           String emptyMessageId) {
         return new StringBuilder()
-                .append('<').append("section class=\"card\" id=\"").append(sectionId).append("\">")
+                .append('<').append("section class=\"card data-section\" id=\"").append(sectionId).append("\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -351,6 +353,116 @@ public class ReportGenerator {
                         tableId))
                 .append("</section>")
                 .toString();
+    }
+
+    private String renderKeyMetrics(ReportSummary summary) {
+        int processedSheets = summary.getSheetSummaries().size();
+        int missingSheets = summary.getMissingSheets().size();
+        int expectedSheets = processedSheets + missingSheets;
+        int totalRows = summary.getTotalRowCount();
+
+        SheetSummary topSheet = summary.getSheetSummaries().values().stream()
+                .max(Comparator.comparingInt(SheetSummary::getRowCount))
+                .orElse(null);
+
+        String coverage = expectedSheets > 0
+                ? String.format(Locale.US, "%.0f%%", (processedSheets * 100.0) / expectedSheets)
+                : "—";
+        String missingCaption = missingSheets > 0
+                ? formatInteger(missingSheets) + " worksheet(s) outstanding"
+                : "All expected worksheets present";
+        String coverageCaption = expectedSheets > 0
+                ? formatInteger(processedSheets) + " of " + formatInteger(expectedSheets) + " worksheets received"
+                : "Awaiting initial data load";
+        String recordsCaption = processedSheets > 0
+                ? "Across " + formatInteger(processedSheets) + " worksheet(s)"
+                : "No worksheet data available";
+        String topSheetName = topSheet != null ? topSheet.getSheetName() : "—";
+        String topSheetCaption = topSheet != null
+                ? formatInteger(topSheet.getRowCount()) + " rows captured"
+                : "No worksheet data available";
+
+        return new StringBuilder()
+                .append("<section class=\"card metrics\">")
+                .append("<h2>Key Figures</h2>")
+                .append("<div class=\"metrics-grid\">")
+                .append(renderMetric("Worksheets processed", formatInteger(processedSheets), missingCaption))
+                .append(renderMetric("Data coverage", coverage, coverageCaption))
+                .append(renderMetric("Records analysed", formatInteger(totalRows), recordsCaption))
+                .append(renderMetric("Top-volume worksheet", topSheetName, topSheetCaption))
+                .append("</div>")
+                .append("</section>")
+                .toString();
+    }
+
+    private String renderMetric(String label, String primaryValue, String caption) {
+        StringBuilder builder = new StringBuilder()
+                .append("<div class=\"metric\">")
+                .append(String.format("<span class=\"metric-label\">%s</span>", escapeHtml(label)))
+                .append(String.format("<span class=\"metric-value\">%s</span>", escapeHtml(primaryValue == null ? "" : primaryValue)));
+        if (caption != null && !caption.isBlank()) {
+            builder.append(String.format("<span class=\"metric-caption\">%s</span>", escapeHtml(caption)));
+        }
+        builder.append("</div>");
+        return builder.toString();
+    }
+
+    private String renderNavigation() {
+        String[][] sections = {
+                {"abnormal-ids", "Abnormal Member IDs"},
+                {"icp-api-stats", "ICP Service Success vs Failure"},
+                {"icp-error-details", "ICP Failure Reasons"},
+                {"mem-upload-counts", "Policy Upload Channels"},
+                {"sd-error-ratio", "Service Failure Ratios"},
+                {"sd-error-details-ic", "Error Details by Insurance Company"}
+        };
+
+        StringBuilder builder = new StringBuilder()
+                .append("<section class=\"card quick-links\">")
+                .append("<h2>Report Sections</h2>")
+                .append("<ul>");
+        for (String[] section : sections) {
+            builder.append(renderNavItem(section[0], section[1]));
+        }
+        builder.append("</ul></section>");
+        return builder.toString();
+    }
+
+    private String renderNavItem(String id, String label) {
+        return String.format("<li><a href=\"#%s\" data-scroll>%s</a></li>", escapeHtml(id), escapeHtml(label));
+    }
+
+    private String renderOverviewCard() {
+        return new StringBuilder()
+                .append("<section class=\"card narrative\">")
+                .append("<h2>How to interpret this dashboard</h2>")
+                .append("<p>Use the curated visualisations and tables to monitor partner performance, surface outliers, and prepare executive-ready summaries.</p>")
+                .append("<ul class=\"narrative-list\">")
+                .append("<li><strong>Charts</strong> spotlight where performance is shifting; hover to reveal precise counts.</li>")
+                .append("<li><strong>Filters</strong> and column sorting in each table accelerate deep dives without exporting the full dataset.</li>")
+                .append("<li><strong>Exports</strong> (Excel/PDF) deliver ready-to-share extracts that mirror the on-screen filters.</li>")
+                .append("</ul>")
+                .append("</section>")
+                .toString();
+    }
+
+    private String renderMissingSheets(ReportSummary summary) {
+        if (summary.getMissingSheets().isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder()
+                .append("<section class=\"card missing\">")
+                .append("<h2>Missing Worksheets</h2>")
+                .append("<p>The following worksheets were not present in the source workbook and should be investigated:</p>")
+                .append("<ul>");
+        summary.getMissingSheets().forEach(sheet ->
+                builder.append(String.format("<li>%s</li>", escapeHtml(sheet))));
+        builder.append("</ul></section>");
+        return builder.toString();
+    }
+
+    private String formatInteger(int value) {
+        return String.format(Locale.US, "%,d", value);
     }
 
     private String escapeHtml(String value) {
@@ -393,32 +505,63 @@ public class ReportGenerator {
     }
 
     private String getStyles() {
-        return "body { font-family: 'Segoe UI', Arial, sans-serif; margin: 1.5rem; background-color: #f8fafc; color: #0f172a; }"
-                + "header { display: flex; flex-direction: column; gap: 0.8rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 2rem; }"
-                + ".title-block h1 { margin: 0; font-size: 2rem; }"
-                + ".meta { margin: 0.2rem 0; color: #475569; }"
-                + ".export-reminder { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 0.75rem 1rem; border-radius: 4px; color: #0c4a6e; font-size: 0.95rem; }"
-                + "section { margin-bottom: 2rem; }"
-                + ".card { background: #ffffff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 15px 25px -20px rgba(15, 23, 42, 0.45); }"
-                + ".section-header { margin-bottom: 1rem; }"
-                + ".section-header h2 { margin: 0 0 0.4rem; font-size: 1.4rem; }"
-                + ".description { margin: 0; color: #475569; }"
-                + ".chart-card { position: relative; min-height: 320px; padding: 1rem; background: #f1f5f9; border-radius: 10px; margin-bottom: 1rem; }"
+        return "*, *::before, *::after { box-sizing: border-box; }"
+                + "body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f1f5f9; color: #0f172a; }"
+                + "a { color: #0ea5e9; text-decoration: none; }"
+                + "a:hover { text-decoration: underline; }"
+                + ".page-shell { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 3rem; }"
+                + ".page-header { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; padding: 2rem; border-radius: 16px; box-shadow: 0 20px 35px -25px rgba(15, 23, 42, 0.7); margin-bottom: 2.5rem; display: grid; gap: 1.5rem; }"
+                + ".branding { display: flex; flex-direction: column; gap: 0.5rem; }"
+                + ".page-badge { align-self: flex-start; background: rgba(14, 165, 233, 0.25); color: #bae6fd; border-radius: 999px; padding: 0.25rem 0.85rem; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }"
+                + ".branding h1 { margin: 0; font-size: 2.1rem; font-weight: 600; }"
+                + ".subtitle { margin: 0; font-size: 1.05rem; color: rgba(226, 232, 240, 0.85); }"
+                + ".meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }"
+                + ".meta-item { background: rgba(15, 23, 42, 0.4); border-radius: 12px; padding: 0.85rem 1rem; }"
+                + ".meta-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(226, 232, 240, 0.7); margin-bottom: 0.35rem; }"
+                + ".meta-value { font-size: 1.15rem; font-weight: 600; color: #f8fafc; }"
+                + ".callout { background: rgba(148, 163, 184, 0.18); border-radius: 12px; padding: 0.9rem 1.1rem; font-size: 0.95rem; color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.35); }"
+                + ".content { display: flex; flex-direction: column; gap: 2.5rem; }"
+                + ".summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }"
+                + ".summary-grid .metrics { grid-column: span 2; }"
+                + ".card { background: #ffffff; border-radius: 16px; padding: 1.75rem; box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.55); border: 1px solid #e2e8f0; }"
+                + ".card h2 { margin: 0; font-size: 1.4rem; font-weight: 600; color: #0f172a; }"
+                + ".metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem; margin-top: 1.5rem; }"
+                + ".metric { display: flex; flex-direction: column; gap: 0.35rem; padding: 1rem 1.1rem; border-radius: 12px; background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(99, 102, 241, 0.08)); border: 1px solid #e2e8f0; }"
+                + ".metric-value { font-size: 1.6rem; font-weight: 600; color: #0f172a; }"
+                + ".metric-label { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }"
+                + ".metric-caption { font-size: 0.9rem; color: #475569; }"
+                + ".quick-links ul { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: 0.75rem; }"
+                + ".quick-links li a { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.8rem; border-radius: 10px; background: #f1f5f9; color: #0f172a; font-weight: 500; border: 1px solid transparent; transition: all 0.2s ease; }"
+                + ".quick-links li a::before { content: '➜'; font-size: 0.85rem; color: #0ea5e9; }"
+                + ".quick-links li a:hover { border-color: #0ea5e9; background: #e0f2fe; color: #0369a1; text-decoration: none; }"
+                + ".narrative p { margin-top: 1rem; line-height: 1.6; color: #475569; }"
+                + ".narrative-list { margin: 1.2rem 0 0; padding-left: 1.2rem; color: #475569; }"
+                + ".narrative-list li { margin-bottom: 0.55rem; }"
+                + ".missing { border-left: 4px solid #f97316; }"
+                + ".missing h2 { color: #b91c1c; }"
+                + ".missing p { margin-top: 0.75rem; color: #7f1d1d; }"
+                + ".missing ul { margin: 1rem 0 0; padding-left: 1.3rem; color: #991b1b; }"
+                + ".data-section { display: grid; gap: 1.25rem; }"
+                + ".section-header { display: flex; flex-direction: column; gap: 0.45rem; }"
+                + ".description { margin: 0; color: #475569; line-height: 1.5; }"
+                + ".chart-card { position: relative; min-height: 320px; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5f5; }"
                 + ".chart-card canvas { width: 100% !important; height: 100% !important; }"
-                + ".table-card { overflow-x: auto; }"
-                + "table.dataTable { width: 100% !important; border-collapse: collapse; }"
-                + "table.dataTable thead th { background: #e2e8f0; color: #0f172a; }"
+                + ".table-card { overflow-x: auto; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; }"
+                + "table.dataTable { width: 100% !important; border-collapse: collapse; font-size: 0.95rem; }"
+                + "table.dataTable thead th { background: #e2e8f0; color: #0f172a; border-bottom: none; }"
                 + "table.dataTable tbody tr:nth-child(even) { background: #f8fafc; }"
-                + ".missing ul { list-style: disc; padding-left: 1.5rem; }"
+                + "table.dataTable tbody tr:hover { background: #e0f2fe; }"
                 + ".empty { color: #64748b; font-style: italic; margin: 0; }"
                 + ".hidden { display: none; }"
                 + ".highlight-manual { background-color: #fef3c7 !important; }"
-                + "footer { margin-top: 3rem; text-align: center; color: #64748b; font-size: 0.85rem; }"
-                + "@media (min-width: 1024px) { header { flex-direction: row; justify-content: space-between; align-items: flex-end; } }";
+                + "footer { margin-top: 3rem; text-align: center; color: #475569; font-size: 0.85rem; }"
+                + "@media (max-width: 900px) { .summary-grid .metrics { grid-column: span 1; } }"
+                + "@media (max-width: 640px) { .page-shell { padding: 2rem 1.25rem 2.5rem; } }";
     }
 
     private String getScript() {
         return "document.addEventListener('DOMContentLoaded', function () {"
+                + "enableSmoothScroll();"
                 + "initAbnormalIds();"
                 + "initIcpApiStats();"
                 + "initIcpErrorDetails();"
@@ -426,6 +569,17 @@ public class ReportGenerator {
                 + "initSdErrorRatios();"
                 + "initSdErrorDetail();"
                 + "});"
+                + "function enableSmoothScroll() {"
+                + "document.querySelectorAll('a[data-scroll]').forEach(link => {"
+                + "link.addEventListener('click', function (event) {"
+                + "const target = document.querySelector(this.getAttribute('href'));"
+                + "if (target) {"
+                + "event.preventDefault();"
+                + "target.scrollIntoView({ behavior: 'smooth' });"
+                + "}"
+                + "});"
+                + "});"
+                + "}"
                 + "function initDataTable(tableId, columns, data, options) {"
                 + "const tableElement = document.getElementById(tableId);"
                 + "if (!tableElement) { return null; }"
