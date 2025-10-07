@@ -429,7 +429,7 @@ public class ReportGenerator {
     }
 
     private String renderNavItem(String id, String label) {
-        return String.format("<li><a href=\"#%s\" data-scroll>%s</a></li>", escapeHtml(id), escapeHtml(label));
+        return String.format("<li><a href=\"#%s\" data-scroll=\"true\">%s</a></li>", escapeHtml(id), escapeHtml(label));
     }
 
     private String renderOverviewCard() {
