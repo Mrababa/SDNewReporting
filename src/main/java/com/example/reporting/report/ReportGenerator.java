@@ -91,6 +91,8 @@ public class ReportGenerator {
                 .append("<meta charset=\"UTF-8\" />")
                 .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />")
                 .append("<title>Weekly SD Report</title>")
+                .append("<link rel=\"stylesheet\" href=\"https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css\" />")
+                .append("<link rel=\"stylesheet\" href=\"https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css\" />")
                 .append("<style>")
                 .append(getStyles())
                 .append("</style>")
@@ -134,7 +136,8 @@ public class ReportGenerator {
                 "abnormalIdsChartContainer",
                 "abnormalIdsChart",
                 "abnormalIdsTable",
-                "abnormalIdsEmpty"
+                "abnormalIdsEmpty",
+                true
         ));
 
         html.append(renderDataSection(
@@ -144,7 +147,8 @@ public class ReportGenerator {
                 "icpApiChartContainer",
                 "icpApiChart",
                 "icpApiTable",
-                "icpApiEmpty"
+                "icpApiEmpty",
+                false
         ));
 
         html.append(renderTableOnlySection(
@@ -152,7 +156,8 @@ public class ReportGenerator {
                 "ICP Failure Reasons",
                 "Sortable and filterable list of failure reasons, including response codes and volumes.",
                 "icpErrorsTable",
-                "icpErrorsEmpty"
+                "icpErrorsEmpty",
+                false
         ));
 
         html.append(renderDataSection(
@@ -162,7 +167,8 @@ public class ReportGenerator {
                 "memUploadChartContainer",
                 "memUploadChart",
                 "memUploadTable",
-                "memUploadEmpty"
+                "memUploadEmpty",
+                false
         ));
 
         html.append(renderDataSection(
@@ -172,7 +178,8 @@ public class ReportGenerator {
                 "sdErrorChartContainer",
                 "sdErrorChart",
                 "sdErrorTable",
-                "sdErrorEmpty"
+                "sdErrorEmpty",
+                false
         ));
 
         html.append(renderDataSection(
@@ -182,7 +189,8 @@ public class ReportGenerator {
                 "sdErrorDetailChartContainer",
                 "sdErrorDetailChart",
                 "sdErrorDetailTable",
-                "sdErrorDetailEmpty"
+                "sdErrorDetailEmpty",
+                false
         ));
 
         html.append("</main>");
@@ -342,12 +350,18 @@ public class ReportGenerator {
                                      String chartContainerId,
                                      String chartId,
                                      String tableId,
-                                     String emptyMessageId) {
+                                     String emptyMessageId,
+                                     boolean initiallyActive) {
         String tabButtonId = "tab-" + sectionId;
+        String classes = "card data-section data-section--with-chart tab-panel" + (initiallyActive ? " active" : "");
+        String ariaHidden = initiallyActive ? "false" : "true";
+        String tabIndex = initiallyActive ? "0" : "-1";
         return new StringBuilder()
-                .append('<').append("section class=\"card data-section data-section--with-chart tab-panel\" id=\"").append(sectionId)
-                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId).append("\" data-tab-panel=\"")
-                .append(sectionId).append("\" tabindex=\"-1\">")
+                .append('<').append("section class=\"").append(classes).append("\" id=\"").append(sectionId)
+                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId)
+                .append("\" data-tab-panel=\"").append(sectionId)
+                .append("\" aria-hidden=\"").append(ariaHidden)
+                .append("\" tabindex=\"").append(tabIndex).append("\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -366,12 +380,18 @@ public class ReportGenerator {
                                           String title,
                                           String description,
                                           String tableId,
-                                          String emptyMessageId) {
+                                          String emptyMessageId,
+                                          boolean initiallyActive) {
         String tabButtonId = "tab-" + sectionId;
+        String classes = "card data-section data-section--table-only tab-panel" + (initiallyActive ? " active" : "");
+        String ariaHidden = initiallyActive ? "false" : "true";
+        String tabIndex = initiallyActive ? "0" : "-1";
         return new StringBuilder()
-                .append('<').append("section class=\"card data-section data-section--table-only tab-panel\" id=\"").append(sectionId)
-                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId).append("\" data-tab-panel=\"")
-                .append(sectionId).append("\" tabindex=\"-1\">")
+                .append('<').append("section class=\"").append(classes).append("\" id=\"").append(sectionId)
+                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId)
+                .append("\" data-tab-panel=\"").append(sectionId)
+                .append("\" aria-hidden=\"").append(ariaHidden)
+                .append("\" tabindex=\"").append(tabIndex).append("\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -440,8 +460,9 @@ public class ReportGenerator {
                 .append("<section class=\"card quick-links\">")
                 .append("<h2>Report Sections</h2>")
                 .append("<div class=\"tab-bar\" role=\"tablist\">");
-        for (String[] section : REPORT_SECTIONS) {
-            builder.append(renderNavItem(section[0], section[1]));
+        for (int i = 0; i < REPORT_SECTIONS.length; i++) {
+            String[] section = REPORT_SECTIONS[i];
+            builder.append(renderNavItem(section[0], section[1], i == 0));
         }
         builder.append("</div>")
                 .append("<p class=\"tab-hint\">Switch between tabs to focus on one worksheet at a time.</p>")
@@ -449,14 +470,20 @@ public class ReportGenerator {
         return builder.toString();
     }
 
-    private String renderNavItem(String id, String label) {
+    private String renderNavItem(String id, String label, boolean initiallyActive) {
         String buttonId = "tab-" + id;
+        String classes = "tab-link" + (initiallyActive ? " active" : "");
+        String ariaSelected = initiallyActive ? "true" : "false";
+        String tabIndex = initiallyActive ? "0" : "-1";
         return String.format(
                 Locale.ROOT,
-                "<button type=\"button\" class=\"tab-link\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"false\" tabindex=\"-1\">%s</button>",
+                "<button type=\"button\" class=\"%s\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"%s\" tabindex=\"%s\">%s</button>",
+                escapeHtml(classes),
                 escapeHtml(buttonId),
                 escapeHtml(id),
                 escapeHtml(id),
+                ariaSelected,
+                tabIndex,
                 escapeHtml(label)
         );
     }
@@ -535,74 +562,84 @@ public class ReportGenerator {
 
     private String getStyles() {
         StringBuilder styles = new StringBuilder();
+        styles.append(":root { --page-bg: #f4f6fb; --surface: #ffffff; --surface-muted: #f8fafc; --surface-raised: #eef2ff; --ink-900: #0f172a; --ink-700: #1f2937; --ink-500: #475569; --ink-400: #64748b; --accent-50: #eff6ff; --accent-100: #dbeafe; --accent-200: #bfdbfe; --accent-400: #60a5fa; --accent-500: #3b82f6; --accent-600: #2563eb; --accent-700: #1d4ed8; --border-subtle: #e2e8f0; --border-strong: #cbd5f5; --shadow-card: 0 22px 40px -28px rgba(15, 23, 42, 0.45); --warning-100: #fef3c7; --warning-600: #d97706; --danger-100: #fee2e2; --danger-600: #dc2626; }");
         styles.append("*, *::before, *::after { box-sizing: border-box; }");
-        styles.append("body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f1f5f9; color: #0f172a; line-height: 1.5; }");
-        styles.append("a { color: #0ea5e9; text-decoration: none; }");
+        styles.append("body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: var(--page-bg); color: var(--ink-900); line-height: 1.55; }");
+        styles.append("a { color: var(--accent-600); text-decoration: none; }");
         styles.append("a:hover { text-decoration: underline; }");
-        styles.append(".page-shell { max-width: 1200px; margin: 0 auto; padding: 32px 20px 48px; }");
-        styles.append(".page-header { display: grid; gap: 24px; background: #1e293b; color: #f8fafc; padding: 32px 28px; border-radius: 16px; margin-bottom: 40px; border: 1px solid #0f172a; }");
+        styles.append(".page-shell { max-width: 1240px; margin: 0 auto; padding: 40px 24px 64px; }");
+        styles.append(".page-header { display: grid; gap: 24px; background: var(--ink-900); color: var(--surface); padding: 36px 32px; border-radius: 20px; margin-bottom: 48px; border: 1px solid rgba(15, 23, 42, 0.3); position: relative; overflow: hidden; }");
+        styles.append(".page-header::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), transparent 58%); pointer-events: none; }");
+        styles.append(".page-header > * { position: relative; z-index: 1; }");
         styles.append(".branding { margin-bottom: 8px; }");
-        styles.append(".page-badge { display: inline-block; background: #0ea5e9; color: #ffffff; border-radius: 12px; padding: 4px 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }");
-        styles.append(".branding h1 { margin: 0; font-size: 28px; font-weight: 600; }");
-        styles.append(".subtitle { margin: 8px 0 0; font-size: 16px; color: #dbeafe; }");
-        styles.append(".meta-grid { display: grid; gap: 16px; margin: 12px 0 0; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }");
-        styles.append(".meta-item { background: #0f172a; border-radius: 12px; padding: 14px 18px; }");
-        styles.append(".meta-label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #cbd5f5; margin-bottom: 6px; }");
-        styles.append(".meta-value { font-size: 18px; font-weight: 600; color: #f8fafc; word-break: break-word; }");
-        styles.append(".callout { background: #1f2937; border-radius: 12px; padding: 14px 18px; font-size: 15px; color: #e2e8f0; border: 1px solid #334155; margin-top: 8px; }");
+        styles.append(".page-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.18); color: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }");
+        styles.append(".page-badge::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--accent-400); }");
+        styles.append(".branding h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }");
+        styles.append(".subtitle { margin: 12px 0 0; font-size: 16px; color: var(--accent-100); max-width: 520px; }");
+        styles.append(".meta-grid { display: grid; gap: 16px; margin: 4px 0 0; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }");
+        styles.append(".meta-item { background: rgba(15, 23, 42, 0.55); border-radius: 16px; padding: 16px 20px; border: 1px solid rgba(148, 163, 184, 0.38); backdrop-filter: blur(4px); }");
+        styles.append(".meta-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--accent-200); margin-bottom: 6px; }");
+        styles.append(".meta-value { font-size: 20px; font-weight: 600; color: var(--surface); word-break: break-word; }");
+        styles.append(".callout { background: rgba(15, 23, 42, 0.65); border-radius: 16px; padding: 16px 20px; font-size: 15px; color: var(--accent-100); border: 1px solid rgba(148, 163, 184, 0.4); }");
         styles.append(".content { margin-top: 32px; }");
         styles.append(".content > section { margin-bottom: 32px; }");
         styles.append(".summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 40px; }");
-        styles.append(".card { background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 16px 32px -24px rgba(15, 23, 42, 0.45); }");
-        styles.append(".card h2 { margin: 0; font-size: 22px; font-weight: 600; color: #0f172a; }");
+        styles.append(".card { background: var(--surface); border-radius: 20px; padding: 28px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card); }");
+        styles.append(".card h2 { margin: 0; font-size: 22px; font-weight: 600; color: var(--ink-900); }");
         styles.append(".metrics-grid { display: grid; gap: 18px; margin-top: 20px; grid-template-columns: minmax(0, 1fr); }");
-        styles.append(".metric { padding: 16px 18px; border-radius: 12px; background: #e0f2fe; border: 1px solid #bae6fd; }");
-        styles.append(".metric-value { font-size: 26px; font-weight: 600; color: #0f172a; }");
-        styles.append(".metric-label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #475569; }");
-        styles.append(".metric-caption { font-size: 14px; color: #475569; margin-top: 6px; }");
+        styles.append(".metric { padding: 18px 20px; border-radius: 16px; background: var(--accent-50); border: 1px solid var(--border-strong); display: grid; gap: 6px; }");
+        styles.append(".metric-value { font-size: 26px; font-weight: 600; color: var(--ink-900); }");
+        styles.append(".metric-label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-500); }");
+        styles.append(".metric-caption { font-size: 14px; color: var(--ink-400); }");
         styles.append(".quick-links { display: flex; flex-direction: column; gap: 16px; }");
-        styles.append(".tab-bar { display: flex; gap: 12px; overflow-x: auto; padding: 4px 0; scroll-snap-type: x proximity; }");
-        styles.append(".tab-bar::-webkit-scrollbar { display: none; }");
-        styles.append(".tab-link { display: inline-flex; align-items: center; margin: 0; padding: 10px 18px; border-radius: 18px; border: 1px solid #cbd5f5; background: #f8fafc; color: #0f172a; font-weight: 500; font: inherit; appearance: none; cursor: pointer; scroll-snap-align: start; white-space: nowrap; flex-shrink: 0; }");
-        styles.append(".tab-link:hover { background: #dbeafe; border-color: #0ea5e9; color: #0f172a; }");
-        styles.append(".tab-link.active { background: #0ea5e9; color: #ffffff; border-color: #0ea5e9; }");
-        styles.append(".tab-link:focus { outline: 2px solid #0ea5e9; outline-offset: 2px; }");
-        styles.append(".tab-hint { margin: 0; font-size: 14px; color: #475569; }");
-        styles.append(".narrative p { margin-top: 16px; color: #475569; }");
-        styles.append(".narrative-list { margin: 18px 0 0; padding-left: 20px; color: #475569; }");
+        styles.append(".tab-bar { display: flex; flex-wrap: wrap; gap: 12px; padding: 4px 0; }");
+        styles.append(".tab-link { display: inline-flex; align-items: center; justify-content: center; margin: 0; padding: 10px 20px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface-muted); color: var(--ink-700); font-weight: 600; font: inherit; cursor: pointer; transition: all 0.15s ease-in-out; }");
+        styles.append(".tab-link:hover { background: var(--accent-100); border-color: var(--accent-400); color: var(--ink-900); }");
+        styles.append(".tab-link.active { background: var(--accent-600); color: var(--surface); border-color: transparent; box-shadow: 0 10px 20px -12px rgba(37, 99, 235, 0.9); }");
+        styles.append(".tab-link:focus-visible { outline: 2px solid var(--accent-400); outline-offset: 3px; }");
+        styles.append(".tab-hint { margin: 0; font-size: 14px; color: var(--ink-400); }");
+        styles.append(".narrative p { margin-top: 16px; color: var(--ink-400); }");
+        styles.append(".narrative-list { margin: 18px 0 0; padding-left: 20px; color: var(--ink-400); }");
         styles.append(".narrative-list li { margin-bottom: 10px; }");
-        styles.append(".missing { border-left: 4px solid #f97316; padding-left: 18px; }");
-        styles.append(".missing h2 { color: #b91c1c; }");
-        styles.append(".missing p { margin-top: 12px; color: #7f1d1d; }");
-        styles.append(".missing ul { margin: 16px 0 0; padding-left: 20px; color: #991b1b; }");
+        styles.append(".missing { border-left: 4px solid var(--warning-600); padding-left: 18px; background: var(--warning-100); border-radius: 16px; }");
+        styles.append(".missing h2 { color: var(--warning-600); }");
+        styles.append(".missing p { margin-top: 12px; color: var(--ink-700); }");
+        styles.append(".missing ul { margin: 16px 0 0; padding-left: 20px; color: var(--ink-700); }");
         styles.append(".tab-panel { display: none; }");
         styles.append(".tab-panel.active { display: block; }");
         styles.append(".tab-panel.active.data-section { display: grid; }");
         styles.append(".data-section { grid-template-columns: minmax(0, 1fr); gap: 24px; align-content: start; }");
         styles.append(".data-section--with-chart .empty { text-align: center; }");
-        styles.append(".section-header { display: grid; gap: 6px; margin-bottom: 12px; }");
-        styles.append(".section-header h2 { margin: 0; }");
-        styles.append(".description { margin: 0; color: #475569; line-height: 1.5; }");
-        styles.append(".chart-card { min-height: 280px; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #cbd5f5; }");
+        styles.append(".section-header { display: grid; gap: 8px; margin-bottom: 14px; }");
+        styles.append(".section-header h2 { margin: 0; font-size: 20px; }");
+        styles.append(".description { margin: 0; color: var(--ink-400); line-height: 1.6; }");
+        styles.append(".chart-card { min-height: 300px; padding: 18px; background: var(--surface-muted); border-radius: 16px; border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; }");
         styles.append(".chart-card canvas { width: 100% !important; height: 100% !important; }");
-        styles.append(".table-card { border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; padding: 0; overflow-x: auto; }");
+        styles.append(".table-card { border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--surface); padding: 0; overflow-x: auto; }");
         styles.append(".table-card table { width: 100%; }");
-        styles.append("table.dataTable { width: 100% !important; border-collapse: collapse; font-size: 15px; }");
-        styles.append("table.dataTable th, table.dataTable td { border: 1px solid #cbd5f5; padding: 8px 10px; text-align: left; }");
-        styles.append("table.dataTable thead th { background: #e2e8f0; color: #0f172a; }");
-        styles.append("table.dataTable tbody tr:nth-child(even) { background: #f8fafc; }");
-        styles.append(".dataTables_wrapper { width: 100%; padding: 16px; }");
-        styles.append(".dataTables_wrapper .dt-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }");
-        styles.append(".dataTables_wrapper .dataTables_filter { text-align: left; }");
-        styles.append(".dataTables_wrapper .dataTables_filter input { margin-left: 0.5em; padding: 6px 10px; border-radius: 8px; border: 1px solid #cbd5f5; }");
-        styles.append(".dataTables_wrapper .dataTables_paginate { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }");
-        styles.append(".empty { color: #64748b; font-style: italic; margin: 0; }");
+        styles.append("table.dataTable { width: 100% !important; border-collapse: collapse; font-size: 15px; color: var(--ink-700); }");
+        styles.append("table.dataTable th, table.dataTable td { border: 1px solid var(--border-strong); padding: 10px 12px; text-align: left; }");
+        styles.append("table.dataTable thead th { background: var(--accent-100); color: var(--ink-900); font-weight: 600; }");
+        styles.append("table.dataTable tbody tr:nth-child(even) { background: var(--surface-muted); }");
+        styles.append(".dataTables_wrapper { width: 100%; padding: 20px; }");
+        styles.append(".dataTables_wrapper .dataTables_filter { text-align: left; color: var(--ink-500); }");
+        styles.append(".dataTables_wrapper .dataTables_filter input { margin-left: 0.5em; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); }");
+        styles.append(".dataTables_wrapper .dataTables_info { color: var(--ink-500); }");
+        styles.append(".dataTables_wrapper .dataTables_paginate { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 12px; }");
+        styles.append(".dataTables_wrapper .dataTables_paginate .paginate_button { border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink-700) !important; padding: 6px 14px; margin: 0; transition: all 0.15s ease; }");
+        styles.append(".dataTables_wrapper .dataTables_paginate .paginate_button:hover { border-color: var(--accent-400); color: var(--ink-900) !important; background: var(--accent-100); }");
+        styles.append(".dataTables_wrapper .dataTables_paginate .paginate_button.current { background: var(--accent-600) !important; color: var(--surface) !important; border-color: transparent; }");
+        styles.append(".dt-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }");
+        styles.append(".dt-button { background: var(--accent-600); border: none; color: var(--surface); border-radius: 999px; padding: 8px 18px; font-weight: 600; cursor: pointer; transition: background 0.15s ease; box-shadow: 0 10px 24px -18px rgba(37, 99, 235, 0.9); }");
+        styles.append(".dt-button:hover { background: var(--accent-700); }");
+        styles.append(".dt-button:focus-visible { outline: 2px solid var(--accent-400); outline-offset: 3px; }");
+        styles.append(".empty { color: var(--ink-400); font-style: italic; margin: 0; }");
         styles.append(".hidden { display: none; }");
-        styles.append(".highlight-manual { background-color: #fef3c7 !important; }");
-        styles.append("footer { margin-top: 48px; text-align: center; color: #475569; font-size: 14px; }");
-        styles.append("@media (max-width: 599px) { .page-header { padding: 28px 22px; } .card { padding: 20px; } .tab-link { padding: 9px 16px; } .dataTables_wrapper { padding: 12px; } }");
-        styles.append("@media (min-width: 600px) { .page-shell { padding: 36px 28px 56px; } .branding h1 { font-size: 30px; } }");
-        styles.append("@media (min-width: 768px) { .page-shell { padding: 48px 40px 64px; } .card { padding: 28px; } .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .meta-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } }");
+        styles.append(".highlight-manual { background-color: var(--warning-100) !important; }");
+        styles.append("footer { margin-top: 48px; text-align: center; color: var(--ink-400); font-size: 14px; }");
+        styles.append("@media (max-width: 599px) { .page-header { padding: 30px 24px; } .page-shell { padding: 32px 18px 56px; } .card { padding: 22px; } .tab-link { padding: 9px 18px; } .dataTables_wrapper { padding: 16px; } }");
+        styles.append("@media (min-width: 600px) { .branding h1 { font-size: 34px; } }");
+        styles.append("@media (min-width: 768px) { .page-shell { padding: 48px 40px 64px; } .card { padding: 30px; } .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .meta-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }");
         styles.append("@media (min-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .summary-grid .narrative { grid-column: span 2; } }");
         styles.append("@media (min-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .summary-grid .narrative { grid-column: span 3; } .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }");
         styles.append("@media (min-width: 1024px) { .page-header { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: 'branding meta' 'callout meta'; align-items: start; } .page-header .branding { grid-area: branding; margin-bottom: 0; } .page-header .meta-grid { grid-area: meta; margin: 0; align-self: stretch; } .page-header .callout { grid-area: callout; margin-top: 0; } }");
@@ -624,8 +661,10 @@ public class ReportGenerator {
         script.append("  initSdErrorDetail();\n");
         script.append("});\n");
         script.append("function initTabs(sections) {\n");
+        script.append("  if (!Array.isArray(sections) || !sections.length) { return; }\n");
         script.append("  const tabButtons = Array.from(document.querySelectorAll('.tab-link'));\n");
         script.append("  const panels = Array.from(document.querySelectorAll('.tab-panel'));\n");
+        script.append("  if (!tabButtons.length || !panels.length) { return; }\n");
         script.append("  const sectionIds = sections.map(section => section.id);\n");
         script.append("  const validIds = new Set(sectionIds);\n");
         script.append("  function activateTab(id, options) {\n");
@@ -664,11 +703,16 @@ public class ReportGenerator {
         script.append("    }, 150);\n");
         script.append("  }\n");
         script.append("  tabButtons.forEach(button => {\n");
-        script.append("    button.addEventListener('click', () => activateTab(button.dataset.tab));\n");
+        script.append("    button.addEventListener('click', event => {\n");
+        script.append("      event.preventDefault();\n");
+        script.append("      const targetId = button.dataset.tab || (button.getAttribute('href') || '').replace('#', '');\n");
+        script.append("      activateTab(targetId);\n");
+        script.append("    });\n");
         script.append("    button.addEventListener('keydown', event => {\n");
         script.append("      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Space' || event.key === 'Spacebar') {\n");
         script.append("        event.preventDefault();\n");
-        script.append("        activateTab(button.dataset.tab);\n");
+        script.append("        const targetId = button.dataset.tab || (button.getAttribute('href') || '').replace('#', '');\n");
+        script.append("        activateTab(targetId);\n");
         script.append("        return;\n");
         script.append("      }\n");
         script.append("      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {\n");
