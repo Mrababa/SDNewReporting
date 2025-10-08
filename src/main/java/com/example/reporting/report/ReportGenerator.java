@@ -453,7 +453,7 @@ public class ReportGenerator {
         String buttonId = "tab-" + id;
         return String.format(
                 Locale.ROOT,
-                "<span class=\"tab-link\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"false\" tabindex=\"-1\">%s</span>",
+                "<button type=\"button\" class=\"tab-link\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"false\" tabindex=\"-1\">%s</button>",
                 escapeHtml(buttonId),
                 escapeHtml(id),
                 escapeHtml(id),
@@ -563,7 +563,7 @@ public class ReportGenerator {
         styles.append(".quick-links { display: flex; flex-direction: column; gap: 16px; }");
         styles.append(".tab-bar { display: flex; gap: 12px; overflow-x: auto; padding: 4px 0; scroll-snap-type: x proximity; }");
         styles.append(".tab-bar::-webkit-scrollbar { display: none; }");
-        styles.append(".tab-link { display: inline-flex; align-items: center; margin: 0; padding: 10px 18px; border-radius: 18px; border: 1px solid #cbd5f5; background: #f8fafc; color: #0f172a; font-weight: 500; cursor: pointer; scroll-snap-align: start; white-space: nowrap; flex-shrink: 0; }");
+        styles.append(".tab-link { display: inline-flex; align-items: center; margin: 0; padding: 10px 18px; border-radius: 18px; border: 1px solid #cbd5f5; background: #f8fafc; color: #0f172a; font-weight: 500; font: inherit; appearance: none; cursor: pointer; scroll-snap-align: start; white-space: nowrap; flex-shrink: 0; }");
         styles.append(".tab-link:hover { background: #dbeafe; border-color: #0ea5e9; color: #0f172a; }");
         styles.append(".tab-link.active { background: #0ea5e9; color: #ffffff; border-color: #0ea5e9; }");
         styles.append(".tab-link:focus { outline: 2px solid #0ea5e9; outline-offset: 2px; }");
@@ -666,6 +666,11 @@ public class ReportGenerator {
         script.append("  tabButtons.forEach(button => {\n");
         script.append("    button.addEventListener('click', () => activateTab(button.dataset.tab));\n");
         script.append("    button.addEventListener('keydown', event => {\n");
+        script.append("      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Space' || event.key === 'Spacebar') {\n");
+        script.append("        event.preventDefault();\n");
+        script.append("        activateTab(button.dataset.tab);\n");
+        script.append("        return;\n");
+        script.append("      }\n");
         script.append("      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {\n");
         script.append("        event.preventDefault();\n");
         script.append("        const currentIndex = tabButtons.indexOf(button);\n");
