@@ -102,9 +102,21 @@ public class ReportGenerator {
 
         html.append("<header class=\"page-header\">")
                 .append("<div class=\"branding\">")
+                .append("<div class=\"brand-identity\">")
+                .append("<div class=\"brand-logo\" role=\"img\" aria-label=\"SlashData logo\">")
+                .append("<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\" focusable=\"false\" aria-hidden=\"true\">")
+                .append("<path d=\"M45.6 4H60L18.4 60H4z\" fill=\"#7fb3ff\" />")
+                .append("<path d=\"M38.6 4H52L10.4 60H-3.6z\" fill=\"rgba(255,255,255,0.18)\" />")
+                .append("</svg>")
+                .append("</div>")
+                .append("<div class=\"brand-meta\">")
+                .append("<span class=\"company-name\">SlashData</span>")
+                .append("<span class=\"product-name\">Product: Rabet</span>")
+                .append("</div>")
+                .append("</div>")
                 .append("<span class=\"page-badge\">Weekly Insight</span>")
                 .append("<h1>SD Interactive Reporting Dashboard</h1>")
-                .append("<p class=\"subtitle\">Operational quality metrics for the Service Desk platform.</p>")
+                .append("<p class=\"subtitle\">Operational quality metrics for the Rabet service desk platform.</p>")
                 .append("</div>")
                 .append("<div class=\"meta-grid\">")
                 .append(String.format("<div class=\"meta-item\"><span class=\"meta-label\">Report Date</span><span class=\"meta-value\">%s</span></div>",
@@ -520,6 +532,12 @@ public class ReportGenerator {
         styles.append(".page-header::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), transparent 58%); pointer-events: none; }");
         styles.append(".page-header > * { position: relative; z-index: 1; }");
         styles.append(".branding { margin-bottom: 8px; }");
+        styles.append(".brand-identity { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }");
+        styles.append(".brand-logo { width: 64px; height: 64px; border-radius: 20px; background: rgba(148, 163, 184, 0.18); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }");
+        styles.append(".brand-logo svg { width: 40px; height: 40px; display: block; }");
+        styles.append(".brand-meta { display: flex; flex-direction: column; gap: 4px; }");
+        styles.append(".company-name { font-size: 18px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--surface); }");
+        styles.append(".product-name { font-size: 13px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--accent-200); }");
         styles.append(".page-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.18); color: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }");
         styles.append(".page-badge::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--accent-400); }");
         styles.append(".branding h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }");
