@@ -117,11 +117,12 @@ public class ReportGenerator {
                 .append("<div class=\"callout\"><strong>Tip:</strong> Use the export buttons on each table to download Excel or PDF extracts for your working papers.</div>")
                 .append("</header>");
 
+        html.append(renderSectionIconBar());
+
         html.append("<main class=\"content\">")
                 .append("<section class=\"summary-grid\">")
                 .append(renderKeyMetrics(summary))
                 .append(renderNavigation())
-                .append(renderOverviewCard())
                 .append("</section>");
 
         String missingSection = renderMissingSheets(summary);
@@ -472,6 +473,37 @@ public class ReportGenerator {
         return builder.toString();
     }
 
+    private String renderSectionIconBar() {
+        StringBuilder builder = new StringBuilder()
+                .append("<nav class=\"section-icon-bar\" aria-label=\"Report section shortcuts\">");
+        for (String[] section : REPORT_SECTIONS) {
+            String id = section[0];
+            String label = section[1];
+            builder.append(String.format(
+                    Locale.ROOT,
+                    "<a class=\"section-icon-link\" href=\"#%s\" aria-label=\"%s\"><span class=\"section-icon-symbol\" aria-hidden=\"true\">%s</span><span class=\"section-icon-label\">%s</span></a>",
+                    escapeHtml(id),
+                    escapeHtml(label),
+                    escapeHtml(getSectionIconSymbol(id)),
+                    escapeHtml(label)
+            ));
+        }
+        builder.append("</nav>");
+        return builder.toString();
+    }
+
+    private String getSectionIconSymbol(String sectionId) {
+        return switch (sectionId) {
+            case "abnormal-ids" -> "ID";
+            case "icp-api-stats" -> "API";
+            case "icp-error-details" -> "ERR";
+            case "mem-upload-counts" -> "UP";
+            case "sd-error-ratio" -> "SFR";
+            case "sd-error-details-ic" -> "IC";
+            default -> "DATA";
+        };
+    }
+
     private String renderNavItem(String id, String label, boolean initiallyActive) {
         String buttonId = "tab-" + id;
         String classes = "tab-link" + (initiallyActive ? " active" : "");
@@ -488,20 +520,6 @@ public class ReportGenerator {
                 tabIndex,
                 escapeHtml(label)
         );
-    }
-
-    private String renderOverviewCard() {
-        return new StringBuilder()
-                .append("<section class=\"card narrative\">")
-                .append("<h2>How to interpret this dashboard</h2>")
-                .append("<p>Use the curated visualisations and tables to monitor partner performance, surface outliers, and prepare executive-ready summaries.</p>")
-                .append("<ul class=\"narrative-list\">")
-                .append("<li><strong>Charts</strong> spotlight where performance is shifting; hover to reveal precise counts.</li>")
-                .append("<li><strong>Filters</strong> and column sorting in each table accelerate deep dives without exporting the full dataset.</li>")
-                .append("<li><strong>Exports</strong> (Excel/PDF) deliver ready-to-share extracts that mirror the on-screen filters.</li>")
-                .append("</ul>")
-                .append("</section>")
-                .toString();
     }
 
     private String renderMissingSheets(ReportSummary summary) {
@@ -585,6 +603,12 @@ public class ReportGenerator {
         styles.append(".callout { background: rgba(15, 23, 42, 0.65); border-radius: 16px; padding: 16px 20px; font-size: 15px; color: var(--accent-100); border: 1px solid rgba(148, 163, 184, 0.4); }");
         styles.append(".content { margin-top: 32px; }");
         styles.append(".content > section { margin-bottom: 32px; }");
+        styles.append(".section-icon-bar { display: flex; flex-wrap: wrap; gap: 18px; margin: 36px 0 0; padding: 0; list-style: none; }");
+        styles.append(".section-icon-link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: var(--ink-700); min-width: 84px; }");
+        styles.append(".section-icon-symbol { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 18px; font-weight: 700; letter-spacing: 0.08em; background: linear-gradient(135deg, var(--accent-600), var(--accent-400)); color: var(--surface); box-shadow: 0 12px 24px -20px rgba(37, 99, 235, 0.9); transition: transform 0.15s ease, box-shadow 0.15s ease; font-size: 15px; text-transform: uppercase; }");
+        styles.append(".section-icon-link:hover .section-icon-symbol { transform: translateY(-2px); box-shadow: 0 16px 28px -20px rgba(37, 99, 235, 0.95); }");
+        styles.append(".section-icon-link:focus-visible .section-icon-symbol { outline: 2px solid var(--accent-400); outline-offset: 4px; }");
+        styles.append(".section-icon-label { font-size: 13px; color: var(--ink-500); text-align: center; max-width: 110px; line-height: 1.4; }");
         styles.append(".summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 40px; }");
         styles.append(".card { background: var(--surface); border-radius: 20px; padding: 28px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card); }");
         styles.append(".card h2 { margin: 0; font-size: 22px; font-weight: 600; color: var(--ink-900); }");
@@ -600,9 +624,6 @@ public class ReportGenerator {
         styles.append(".tab-link.active { background: var(--accent-600); color: var(--surface); border-color: transparent; box-shadow: 0 10px 20px -12px rgba(37, 99, 235, 0.9); }");
         styles.append(".tab-link:focus-visible { outline: 2px solid var(--accent-400); outline-offset: 3px; }");
         styles.append(".tab-hint { margin: 0; font-size: 14px; color: var(--ink-400); }");
-        styles.append(".narrative p { margin-top: 16px; color: var(--ink-400); }");
-        styles.append(".narrative-list { margin: 18px 0 0; padding-left: 20px; color: var(--ink-400); }");
-        styles.append(".narrative-list li { margin-bottom: 10px; }");
         styles.append(".missing { border-left: 4px solid var(--warning-600); padding-left: 18px; background: var(--warning-100); border-radius: 16px; }");
         styles.append(".missing h2 { color: var(--warning-600); }");
         styles.append(".missing p { margin-top: 12px; color: var(--ink-700); }");
@@ -639,11 +660,11 @@ public class ReportGenerator {
         styles.append(".hidden { display: none; }");
         styles.append(".highlight-manual { background-color: var(--warning-100) !important; }");
         styles.append("footer { margin-top: 48px; text-align: center; color: var(--ink-400); font-size: 14px; }");
-        styles.append("@media (max-width: 599px) { .page-header { padding: 30px 24px; } .page-shell { padding: 32px 18px 56px; } .card { padding: 22px; } .tab-link { padding: 9px 18px; } .dataTables_wrapper { padding: 16px; } }");
+        styles.append("@media (max-width: 599px) { .page-header { padding: 30px 24px; } .page-shell { padding: 32px 18px 56px; } .card { padding: 22px; } .tab-link { padding: 9px 18px; } .dataTables_wrapper { padding: 16px; } .section-icon-bar { justify-content: center; } .section-icon-link { min-width: 72px; } }");
         styles.append("@media (min-width: 600px) { .branding h1 { font-size: 34px; } }");
         styles.append("@media (min-width: 768px) { .page-shell { padding: 48px 40px 64px; } .card { padding: 30px; } .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .meta-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }");
-        styles.append("@media (min-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .summary-grid .narrative { grid-column: span 2; } }");
-        styles.append("@media (min-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .summary-grid .narrative { grid-column: span 3; } .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }");
+        styles.append("@media (min-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }");
+        styles.append("@media (min-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }");
         styles.append("@media (min-width: 1024px) { .page-header { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: 'branding meta' 'callout meta'; align-items: start; } .page-header .branding { grid-area: branding; margin-bottom: 0; } .page-header .meta-grid { grid-area: meta; margin: 0; align-self: stretch; } .page-header .callout { grid-area: callout; margin-top: 0; } }");
         styles.append("@media (min-width: 1024px) { .data-section--with-chart { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'header header' 'chart table'; align-items: stretch; } .data-section--with-chart .section-header { grid-area: header; } .data-section--with-chart .chart-card { grid-area: chart; } .data-section--with-chart .table-card { grid-area: table; } .data-section--with-chart .empty { grid-area: chart; } }");
         styles.append("@media (max-width: 480px) { .dataTables_wrapper .dataTables_filter input { width: 100%; margin-top: 8px; } .dataTables_wrapper .dataTables_filter label { display: flex; flex-direction: column; align-items: stretch; gap: 6px; } }");
