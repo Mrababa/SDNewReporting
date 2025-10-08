@@ -120,10 +120,7 @@ public class ReportGenerator {
         html.append(renderSectionIconBar());
 
         html.append("<main class=\"content\">")
-                .append("<section class=\"summary-grid\">")
-                .append(renderKeyMetrics(summary))
-                .append(renderNavigation())
-                .append("</section>");
+                .append(renderKeyMetrics(summary));
 
         String missingSection = renderMissingSheets(summary);
         if (!missingSection.isEmpty()) {
@@ -137,8 +134,7 @@ public class ReportGenerator {
                 "abnormalIdsChartContainer",
                 "abnormalIdsChart",
                 "abnormalIdsTable",
-                "abnormalIdsEmpty",
-                true
+                "abnormalIdsEmpty"
         ));
 
         html.append(renderDataSection(
@@ -148,8 +144,7 @@ public class ReportGenerator {
                 "icpApiChartContainer",
                 "icpApiChart",
                 "icpApiTable",
-                "icpApiEmpty",
-                false
+                "icpApiEmpty"
         ));
 
         html.append(renderTableOnlySection(
@@ -157,8 +152,7 @@ public class ReportGenerator {
                 "ICP Failure Reasons",
                 "Sortable and filterable list of failure reasons, including response codes and volumes.",
                 "icpErrorsTable",
-                "icpErrorsEmpty",
-                false
+                "icpErrorsEmpty"
         ));
 
         html.append(renderDataSection(
@@ -168,8 +162,7 @@ public class ReportGenerator {
                 "memUploadChartContainer",
                 "memUploadChart",
                 "memUploadTable",
-                "memUploadEmpty",
-                false
+                "memUploadEmpty"
         ));
 
         html.append(renderDataSection(
@@ -179,8 +172,7 @@ public class ReportGenerator {
                 "sdErrorChartContainer",
                 "sdErrorChart",
                 "sdErrorTable",
-                "sdErrorEmpty",
-                false
+                "sdErrorEmpty"
         ));
 
         html.append(renderDataSection(
@@ -190,8 +182,7 @@ public class ReportGenerator {
                 "sdErrorDetailChartContainer",
                 "sdErrorDetailChart",
                 "sdErrorDetailTable",
-                "sdErrorDetailEmpty",
-                false
+                "sdErrorDetailEmpty"
         ));
 
         html.append("</main>");
@@ -209,7 +200,6 @@ public class ReportGenerator {
                 .append("<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js\"></script>")
                 .append("<script type=\"text/javascript\">\n")
                 .append("//<![CDATA[\n")
-                .append("const reportSections = ").append(toJsonSections()).append(";\n")
                 .append("const abnormalIdsColumns = ").append(toJsonArray(abnormalColumns)).append(";\n")
                 .append("const abnormalIdsData = ").append(abnormalJson).append(";\n")
                 .append("const icpApiColumns = ").append(toJsonArray(icpApiColumns)).append(";\n")
@@ -332,39 +322,17 @@ public class ReportGenerator {
         return sb.toString();
     }
 
-    private String toJsonSections() {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < REPORT_SECTIONS.length; i++) {
-            if (i > 0) {
-                sb.append(',');
-            }
-            sb.append('{')
-                    .append("\"id\":\"").append(escapeJson(REPORT_SECTIONS[i][0])).append("\",")
-                    .append("\"label\":\"").append(escapeJson(REPORT_SECTIONS[i][1])).append("\"")
-                    .append('}');
-        }
-        sb.append(']');
-        return sb.toString();
-    }
-
     private String renderDataSection(String sectionId,
                                      String title,
                                      String description,
                                      String chartContainerId,
                                      String chartId,
                                      String tableId,
-                                     String emptyMessageId,
-                                     boolean initiallyActive) {
-        String tabButtonId = "tab-" + sectionId;
-        String classes = "card data-section data-section--with-chart tab-panel" + (initiallyActive ? " active" : "");
-        String ariaHidden = initiallyActive ? "false" : "true";
-        String tabIndex = initiallyActive ? "0" : "-1";
+                                     String emptyMessageId) {
+        String classes = "card data-section data-section--with-chart";
         return new StringBuilder()
                 .append('<').append("section class=\"").append(classes).append("\" id=\"").append(sectionId)
-                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId)
-                .append("\" data-tab-panel=\"").append(sectionId)
-                .append("\" aria-hidden=\"").append(ariaHidden)
-                .append("\" tabindex=\"").append(tabIndex).append("\">")
+                .append("\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -383,18 +351,11 @@ public class ReportGenerator {
                                           String title,
                                           String description,
                                           String tableId,
-                                          String emptyMessageId,
-                                          boolean initiallyActive) {
-        String tabButtonId = "tab-" + sectionId;
-        String classes = "card data-section data-section--table-only tab-panel" + (initiallyActive ? " active" : "");
-        String ariaHidden = initiallyActive ? "false" : "true";
-        String tabIndex = initiallyActive ? "0" : "-1";
+                                          String emptyMessageId) {
+        String classes = "card data-section data-section--table-only";
         return new StringBuilder()
                 .append('<').append("section class=\"").append(classes).append("\" id=\"").append(sectionId)
-                .append("\" role=\"tabpanel\" aria-labelledby=\"").append(tabButtonId)
-                .append("\" data-tab-panel=\"").append(sectionId)
-                .append("\" aria-hidden=\"").append(ariaHidden)
-                .append("\" tabindex=\"").append(tabIndex).append("\">")
+                .append("\">")
                 .append("<div class=\"section-header\">")
                 .append(String.format("<h2>%s</h2>", escapeHtml(title)))
                 .append(String.format("<p class=\"description\">%s</p>", escapeHtml(description)))
@@ -458,21 +419,6 @@ public class ReportGenerator {
         return builder.toString();
     }
 
-    private String renderNavigation() {
-        StringBuilder builder = new StringBuilder()
-                .append("<section class=\"card quick-links\">")
-                .append("<h2>Report Sections</h2>")
-                .append("<div class=\"tab-bar\" role=\"tablist\">");
-        for (int i = 0; i < REPORT_SECTIONS.length; i++) {
-            String[] section = REPORT_SECTIONS[i];
-            builder.append(renderNavItem(section[0], section[1], i == 0));
-        }
-        builder.append("</div>")
-                .append("<p class=\"tab-hint\">Switch between tabs to focus on one worksheet at a time.</p>")
-                .append("</section>");
-        return builder.toString();
-    }
-
     private String renderSectionIconBar() {
         StringBuilder builder = new StringBuilder()
                 .append("<nav class=\"section-icon-bar\" aria-label=\"Report section shortcuts\">");
@@ -502,24 +448,6 @@ public class ReportGenerator {
             case "sd-error-details-ic" -> "IC";
             default -> "DATA";
         };
-    }
-
-    private String renderNavItem(String id, String label, boolean initiallyActive) {
-        String buttonId = "tab-" + id;
-        String classes = "tab-link" + (initiallyActive ? " active" : "");
-        String ariaSelected = initiallyActive ? "true" : "false";
-        String tabIndex = initiallyActive ? "0" : "-1";
-        return String.format(
-                Locale.ROOT,
-                "<button type=\"button\" class=\"%s\" role=\"tab\" id=\"%s\" data-tab=\"%s\" aria-controls=\"%s\" aria-selected=\"%s\" tabindex=\"%s\">%s</button>",
-                escapeHtml(classes),
-                escapeHtml(buttonId),
-                escapeHtml(id),
-                escapeHtml(id),
-                ariaSelected,
-                tabIndex,
-                escapeHtml(label)
-        );
     }
 
     private String renderMissingSheets(ReportSummary summary) {
@@ -609,7 +537,6 @@ public class ReportGenerator {
         styles.append(".section-icon-link:hover .section-icon-symbol { transform: translateY(-2px); box-shadow: 0 16px 28px -20px rgba(37, 99, 235, 0.95); }");
         styles.append(".section-icon-link:focus-visible .section-icon-symbol { outline: 2px solid var(--accent-400); outline-offset: 4px; }");
         styles.append(".section-icon-label { font-size: 13px; color: var(--ink-500); text-align: center; max-width: 110px; line-height: 1.4; }");
-        styles.append(".summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 40px; }");
         styles.append(".card { background: var(--surface); border-radius: 20px; padding: 28px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card); }");
         styles.append(".card h2 { margin: 0; font-size: 22px; font-weight: 600; color: var(--ink-900); }");
         styles.append(".metrics-grid { display: grid; gap: 18px; margin-top: 20px; grid-template-columns: minmax(0, 1fr); }");
@@ -617,20 +544,10 @@ public class ReportGenerator {
         styles.append(".metric-value { font-size: 26px; font-weight: 600; color: var(--ink-900); }");
         styles.append(".metric-label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-500); }");
         styles.append(".metric-caption { font-size: 14px; color: var(--ink-400); }");
-        styles.append(".quick-links { display: flex; flex-direction: column; gap: 16px; }");
-        styles.append(".tab-bar { display: flex; flex-wrap: wrap; gap: 12px; padding: 4px 0; }");
-        styles.append(".tab-link { display: inline-flex; align-items: center; justify-content: center; margin: 0; padding: 10px 20px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface-muted); color: var(--ink-700); font-weight: 600; font: inherit; cursor: pointer; transition: all 0.15s ease-in-out; }");
-        styles.append(".tab-link:hover { background: var(--accent-100); border-color: var(--accent-400); color: var(--ink-900); }");
-        styles.append(".tab-link.active { background: var(--accent-600); color: var(--surface); border-color: transparent; box-shadow: 0 10px 20px -12px rgba(37, 99, 235, 0.9); }");
-        styles.append(".tab-link:focus-visible { outline: 2px solid var(--accent-400); outline-offset: 3px; }");
-        styles.append(".tab-hint { margin: 0; font-size: 14px; color: var(--ink-400); }");
         styles.append(".missing { border-left: 4px solid var(--warning-600); padding-left: 18px; background: var(--warning-100); border-radius: 16px; }");
         styles.append(".missing h2 { color: var(--warning-600); }");
         styles.append(".missing p { margin-top: 12px; color: var(--ink-700); }");
         styles.append(".missing ul { margin: 16px 0 0; padding-left: 20px; color: var(--ink-700); }");
-        styles.append(".tab-panel { display: none; }");
-        styles.append(".tab-panel.active { display: block; }");
-        styles.append(".tab-panel.active.data-section { display: grid; }");
         styles.append(".data-section { grid-template-columns: minmax(0, 1fr); gap: 24px; align-content: start; }");
         styles.append(".data-section--with-chart .empty { text-align: center; }");
         styles.append(".section-header { display: grid; gap: 8px; margin-bottom: 14px; }");
@@ -660,11 +577,10 @@ public class ReportGenerator {
         styles.append(".hidden { display: none; }");
         styles.append(".highlight-manual { background-color: var(--warning-100) !important; }");
         styles.append("footer { margin-top: 48px; text-align: center; color: var(--ink-400); font-size: 14px; }");
-        styles.append("@media (max-width: 599px) { .page-header { padding: 30px 24px; } .page-shell { padding: 32px 18px 56px; } .card { padding: 22px; } .tab-link { padding: 9px 18px; } .dataTables_wrapper { padding: 16px; } .section-icon-bar { justify-content: center; } .section-icon-link { min-width: 72px; } }");
+        styles.append("@media (max-width: 599px) { .page-header { padding: 30px 24px; } .page-shell { padding: 32px 18px 56px; } .card { padding: 22px; } .dataTables_wrapper { padding: 16px; } .section-icon-bar { justify-content: center; } .section-icon-link { min-width: 72px; } }");
         styles.append("@media (min-width: 600px) { .branding h1 { font-size: 34px; } }");
         styles.append("@media (min-width: 768px) { .page-shell { padding: 48px 40px 64px; } .card { padding: 30px; } .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .meta-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }");
-        styles.append("@media (min-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }");
-        styles.append("@media (min-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }");
+        styles.append("@media (min-width: 1100px) { .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }");
         styles.append("@media (min-width: 1024px) { .page-header { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: 'branding meta' 'callout meta'; align-items: start; } .page-header .branding { grid-area: branding; margin-bottom: 0; } .page-header .meta-grid { grid-area: meta; margin: 0; align-self: stretch; } .page-header .callout { grid-area: callout; margin-top: 0; } }");
         styles.append("@media (min-width: 1024px) { .data-section--with-chart { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'header header' 'chart table'; align-items: stretch; } .data-section--with-chart .section-header { grid-area: header; } .data-section--with-chart .chart-card { grid-area: chart; } .data-section--with-chart .table-card { grid-area: table; } .data-section--with-chart .empty { grid-area: chart; } }");
         styles.append("@media (max-width: 480px) { .dataTables_wrapper .dataTables_filter input { width: 100%; margin-top: 8px; } .dataTables_wrapper .dataTables_filter label { display: flex; flex-direction: column; align-items: stretch; gap: 6px; } }");
@@ -675,7 +591,6 @@ public class ReportGenerator {
         StringBuilder script = new StringBuilder();
         script.append("const dataTables = {};\n");
         script.append("document.addEventListener('DOMContentLoaded', function () {\n");
-        script.append("  initTabs(reportSections);\n");
         script.append("  initAbnormalIds();\n");
         script.append("  initIcpApiStats();\n");
         script.append("  initIcpErrorDetails();\n");
@@ -683,81 +598,6 @@ public class ReportGenerator {
         script.append("  initSdErrorRatios();\n");
         script.append("  initSdErrorDetail();\n");
         script.append("});\n");
-        script.append("function initTabs(sections) {\n");
-        script.append("  if (!Array.isArray(sections) || !sections.length) { return; }\n");
-        script.append("  const tabButtons = Array.from(document.querySelectorAll('.tab-link'));\n");
-        script.append("  const panels = Array.from(document.querySelectorAll('.tab-panel'));\n");
-        script.append("  if (!tabButtons.length || !panels.length) { return; }\n");
-        script.append("  const sectionIds = sections.map(section => section.id);\n");
-        script.append("  const validIds = new Set(sectionIds);\n");
-        script.append("  function activateTab(id, options) {\n");
-        script.append("    if (!id || !validIds.has(id)) { return; }\n");
-        script.append("    const opts = Object.assign({ updateHash: true, focus: false }, options || {});\n");
-        script.append("    tabButtons.forEach(button => {\n");
-        script.append("      const isActive = button.dataset.tab === id;\n");
-        script.append("      button.classList.toggle('active', isActive);\n");
-        script.append("      button.setAttribute('aria-selected', String(isActive));\n");
-        script.append("      button.setAttribute('tabindex', isActive ? '0' : '-1');\n");
-        script.append("    });\n");
-        script.append("    panels.forEach(panel => {\n");
-        script.append("      const isActive = panel.dataset.tabPanel === id;\n");
-        script.append("      panel.classList.toggle('active', isActive);\n");
-        script.append("      panel.setAttribute('aria-hidden', String(!isActive));\n");
-        script.append("      panel.setAttribute('tabindex', isActive ? '0' : '-1');\n");
-        script.append("    });\n");
-        script.append("    if (opts.updateHash && typeof history.replaceState === 'function') {\n");
-        script.append("      history.replaceState(null, '', '#' + id);\n");
-        script.append("    }\n");
-        script.append("    if (opts.focus) {\n");
-        script.append("      const activeButton = tabButtons.find(button => button.dataset.tab === id);\n");
-        script.append("      if (activeButton) { activeButton.focus(); }\n");
-        script.append("    }\n");
-        script.append("    setTimeout(() => {\n");
-        script.append("      const panel = document.querySelector(`[data-tab-panel='${id}']`);\n");
-        script.append("      if (panel) {\n");
-        script.append("        panel.querySelectorAll('table').forEach(table => {\n");
-        script.append("          const instance = dataTables[table.id];\n");
-        script.append("          if (instance && typeof instance.columns === 'function') { instance.columns.adjust(); }\n");
-        script.append("        });\n");
-        script.append("        panel.querySelectorAll('canvas').forEach(canvas => {\n");
-        script.append("          if (canvas.__chart && typeof canvas.__chart.resize === 'function') { canvas.__chart.resize(); }\n");
-        script.append("        });\n");
-        script.append("      }\n");
-        script.append("    }, 150);\n");
-        script.append("  }\n");
-        script.append("  tabButtons.forEach(button => {\n");
-        script.append("    button.addEventListener('click', event => {\n");
-        script.append("      event.preventDefault();\n");
-        script.append("      const targetId = button.dataset.tab || (button.getAttribute('href') || '').replace('#', '');\n");
-        script.append("      activateTab(targetId);\n");
-        script.append("    });\n");
-        script.append("    button.addEventListener('keydown', event => {\n");
-        script.append("      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Space' || event.key === 'Spacebar') {\n");
-        script.append("        event.preventDefault();\n");
-        script.append("        const targetId = button.dataset.tab || (button.getAttribute('href') || '').replace('#', '');\n");
-        script.append("        activateTab(targetId);\n");
-        script.append("        return;\n");
-        script.append("      }\n");
-        script.append("      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {\n");
-        script.append("        event.preventDefault();\n");
-        script.append("        const currentIndex = tabButtons.indexOf(button);\n");
-        script.append("        const direction = event.key === 'ArrowRight' ? 1 : -1;\n");
-        script.append("        const nextIndex = (currentIndex + direction + tabButtons.length) % tabButtons.length;\n");
-        script.append("        const nextButton = tabButtons[nextIndex];\n");
-        script.append("        if (nextButton) {\n");
-        script.append("          activateTab(nextButton.dataset.tab, { focus: true });\n");
-        script.append("        }\n");
-        script.append("      }\n");
-        script.append("    });\n");
-        script.append("  });\n");
-        script.append("  const hash = window.location.hash.replace('#', '');\n");
-        script.append("  const initialId = validIds.has(hash) ? hash : sectionIds[0];\n");
-        script.append("  if (initialId) { activateTab(initialId, { updateHash: false }); }\n");
-        script.append("  window.addEventListener('hashchange', () => {\n");
-        script.append("    const targetId = window.location.hash.replace('#', '');\n");
-        script.append("    activateTab(targetId, { updateHash: false });\n");
-        script.append("  });\n");
-        script.append("}\n");
         script.append("function initDataTable(tableId, columns, data, options) {\n");
         script.append("  const tableElement = document.getElementById(tableId);\n");
         script.append("  if (!tableElement) { return null; }\n");
